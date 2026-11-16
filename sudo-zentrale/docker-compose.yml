@@ -1,0 +1,12 @@
+# docker compose up -d  →  Zentrale läuft auf 127.0.0.1:8080; davor der Reverse-Proxy (aaPanel/nginx) mit HTTPS
+services:
+  zentrale:
+    build: .
+    image: sudo-zentrale:1.3
+    container_name: sudo-zentrale
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./data:/data

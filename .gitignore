@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.sqlite
+*.sqlite-*
+sudo-zentrale-php/config.php
+sudo-zentrale-php/data/.secret
+sudo-zentrale/data/*
+!sudo-zentrale/data/.gitkeep
+shot.png
+*.log
+.env
+# Erzeugte Intune-Pakete und das geladene Microsoft-Packwerkzeug
+sudo-desktop/intune/ausgabe/
+sudo-desktop/intune/werkzeug/
+# Vorschau aus "npm run sheet -- --vorschau"
+sudo-desktop/tools/sheet-preview.png
+# Präsentationen gehören nicht ins Repo
+*.pptx
+__pycache__/

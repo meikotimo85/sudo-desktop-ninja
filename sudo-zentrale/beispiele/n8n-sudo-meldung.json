@@ -1,0 +1,32 @@
+{
+  "name": "Sudo – Meldung an die Zentrale senden",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Test starten",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sudo.meikosoft.net/api/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"message\",\n  \"text\": \"Hallo aus n8n! Gesendet um {{ $now.toFormat('HH:mm') }} Uhr.\",\n  \"target\": \"group:IT\",\n  \"dur\": 20\n}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "An Sudo senden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Test starten": { "main": [[{ "node": "An Sudo senden", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

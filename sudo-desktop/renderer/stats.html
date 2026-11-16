@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Statistik</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --belt:#eef1f5; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding: 22px 24px; user-select: none; }
+  .head { display: flex; gap: 16px; align-items: center; }
+  .head img { width: 80px; height: 80px; image-rendering: pixelated; background: #0e1218; border: 1px solid var(--line); border-radius: 8px; }
+  h1 { margin: 0; font: 700 28px/1 "Pixelify Sans", monospace; }
+  .belt { margin-top: 6px; display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .belt i { width: 26px; height: 8px; border-radius: 2px; background: var(--belt); box-shadow: inset 0 0 0 1px rgba(0,0,0,.4); }
+  .belt b { color: var(--fg); font-weight: 600; }
+  .xp { margin-top: 18px; }
+  .xp .bar { height: 10px; background: #0e1218; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .xp .bar i { display: block; height: 100%; width: 0; background: var(--belt); transition: width .4s; }
+  .xp .lbl { display: flex; justify-content: space-between; margin-top: 5px; font: 12.5px Consolas, ui-monospace, monospace; color: var(--muted); }
+  .ranks { display: flex; gap: 4px; margin-top: 10px; }
+  .ranks span { flex: 1; text-align: center; font-size: 11px; padding: 3px 0 4px; border-radius: 3px; background: #0e1218; color: var(--muted); border-top: 3px solid var(--c); }
+  .ranks span.on { color: var(--fg); background: #1f2533; }
+  dl { margin: 20px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  dl div { background: var(--card); padding: 10px 12px; }
+  dt { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  dd { margin: 3px 0 0; font: 600 20px Consolas, ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .foot { margin-top: 16px; font-size: 12.5px; color: var(--muted); }
+  .empty { margin-top: 30px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; margin: 0 0 18px; border-bottom: 1px solid var(--line); }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: 600 13.5px "Segoe UI", sans-serif; padding: 8px 12px; cursor: pointer; margin-bottom: -1px; }
+  .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--teal); }
+  .tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+  .kpis { margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .kpis div { background: var(--card); padding: 10px 12px; }
+  h3 { margin: 18px 0 8px; font: 600 11px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .apps { display: grid; gap: 6px; }
+  .app { display: grid; grid-template-columns: 110px 1fr 58px; gap: 8px; align-items: center; font-size: 13px; }
+  .app .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app .b { height: 10px; background: #0e1218; border-radius: 2px; overflow: hidden; }
+  .app .b i { display: block; height: 100%; background: var(--teal); border-radius: 2px; }
+  .app .v { text-align: right; font: 12.5px Consolas, monospace; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 110px; padding: 0 2px; }
+  .week div { display: grid; grid-template-rows: 1fr auto auto; height: 100%; text-align: center; font-size: 11.5px; color: var(--muted); gap: 3px; }
+  .week i { align-self: end; background: #2f4a5a; border-radius: 2px 2px 0 0; min-height: 2px; }
+  .week div.today i { background: var(--teal); }
+  .week b { font: 11px Consolas, monospace; color: var(--fg); font-weight: 400; }
+  .clear { margin-top: 16px; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+  .clear button { background: #222938; border: 1px solid var(--line); color: var(--fg); border-radius: 5px; padding: 5px 10px; font: 12.5px "Segoe UI", sans-serif; cursor: pointer; }
+  .clear button.danger { border-color: #7a2c30; color: #ffb1b4; }
+  .achhead { font: 600 13px Consolas, monospace; color: #f4d03f; margin-bottom: 10px; }
+  .achs { display: grid; gap: 6px; }
+  .ach { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+  .ach i { width: 26px; height: 26px; border-radius: 5px; display: grid; place-items: center; font-style: normal; font-size: 15px; background: #0e1218; border: 1px solid var(--line); }
+  .ach.on i { background: #3a3110; border-color: #f4d03f; }
+  .ach b { display: block; font-weight: 600; font-size: 13.5px; }
+  .ach span { font-size: 12px; color: var(--muted); }
+  .ach em { font: normal 12px Consolas, monospace; color: var(--muted); }
+  .ach:not(.on) b { color: var(--muted); }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tabSudo" aria-selected="true">Sudo</button>
+    <button role="tab" id="tabDay" aria-selected="false">Mein Tag</button>
+    <button role="tab" id="tabAch" aria-selected="false">Erfolge</button>
+  </div>
+  <div id="pageSudo">
+  <div class="head">
+    <img id="avatar" alt="">
+    <div>
+      <h1>Sudo</h1>
+      <div class="belt"><i></i><span>Gürtel: <b id="rank">–</b></span></div>
+    </div>
+  </div>
+  <div class="xp">
+    <div class="bar"><i id="xpbar"></i></div>
+    <div class="lbl"><span id="xpnow">0 XP</span><span id="xpnext"></span></div>
+    <div class="ranks" id="ranks"></div>
+  </div>
+  <dl>
+    <div><dt>Tasten heute</dt><dd id="keysToday">0</dd></div>
+    <div><dt>Tasten gesamt</dt><dd id="keys">0</dd></div>
+    <div><dt>Bugs gefixt</dt><dd id="bugs">0</dd></div>
+    <div><dt>Gespeichert</dt><dd id="saves">0</dd></div>
+    <div><dt>Combo-Rekord</dt><dd id="best">0</dd></div>
+    <div><dt>Alarme gemeldet</dt><dd id="alarms">0</dd></div>
+    <div><dt>Gestreichelt</dt><dd id="pets">0</dd></div>
+    <div><dt>Gemeinsame Zeit</dt><dd id="time">0 h</dd></div>
+  </dl>
+  <p class="foot" id="since"></p>
+  </div>
+  <div id="pageDay" hidden>
+    <dl class="kpis">
+      <div><dt>Arbeitsbeginn</dt><dd id="dStart">–</dd></div>
+      <div><dt>Aktiv am PC</dt><dd id="dActive">–</dd></div>
+      <div><dt>Feierabend ca.</dt><dd id="dEnd">–</dd></div>
+      <div><dt>Nächste Pause</dt><dd id="dBreak">–</dd></div>
+    </dl>
+    <h3>Bildschirmzeit heute</h3>
+    <div class="apps" id="apps"></div>
+    <h3>Aktive Zeit, letzte 7 Tage</h3>
+    <div class="week" id="week"></div>
+    <div class="clear" id="clearBox"><button id="clearBtn">Bildschirmzeit löschen</button></div>
+  </div>
+  <div id="pageAch" hidden>
+    <div class="achhead" id="achCount"></div>
+    <div class="achs" id="achs"></div>
+  </div>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="progress.js"></script>
+  <script src="stats.js"></script>
+</body>
+</html>

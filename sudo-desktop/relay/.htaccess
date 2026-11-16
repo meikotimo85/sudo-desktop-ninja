@@ -1,0 +1,4 @@
+# Hilfsdateien nicht direkt aufrufbar
+<FilesMatch "^(config|lib)\.php$">
+  Require all denied
+</FilesMatch>

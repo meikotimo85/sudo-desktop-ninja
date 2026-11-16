@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Willkommen bei Sudo</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: radial-gradient(120% 80% at 80% 0%, #1b2848 0%, var(--bg) 60%); color: var(--fg); font: 15px/1.55 "Segoe UI", system-ui, sans-serif; display: grid; grid-template-rows: 1fr auto; }
+  .page { padding: 26px 30px 10px; display: grid; grid-template-columns: 96px 1fr; gap: 22px; align-items: start; }
+  .page img { width: 96px; height: 96px; image-rendering: pixelated; border-radius: 12px; border: 1px solid var(--line); background: #0e1218; }
+  .step { font: 600 12px "Segoe UI", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
+  h1 { margin: 4px 0 10px; font: 700 28px/1.15 "Pixelify Sans", monospace; text-wrap: balance; }
+  p { margin: 0 0 10px; color: #c3cbd8; max-width: 52ch; }
+  kbd { font: 600 12.5px Consolas, monospace; background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; color: var(--fg); }
+  .opts { display: grid; gap: 10px; margin-top: 12px; }
+  .opt { display: flex; align-items: center; gap: 10px; }
+  .opt input { width: 17px; height: 17px; accent-color: var(--teal); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { background: #0e1218; border: 0; color: var(--muted); padding: 6px 12px; font: 500 13px "Segoe UI", sans-serif; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--teal); color: #062424; font-weight: 600; }
+  footer { display: flex; align-items: center; gap: 10px; padding: 14px 30px 20px; }
+  .dots { display: flex; gap: 6px; flex: 1; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; background: #2b3344; }
+  .dots i.on { background: var(--teal); }
+  button.act { padding: 8px 18px; border-radius: 7px; border: 1px solid var(--line); background: #222938; color: var(--fg); font: 600 14px "Segoe UI", sans-serif; cursor: pointer; }
+  button.act.primary { background: var(--teal); border-color: var(--teal); color: #062424; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <div class="page">
+    <img src="../assets/icon.png" alt="">
+    <div id="content"></div>
+  </div>
+  <footer>
+    <div class="dots" id="dots"></div>
+    <button class="act" id="back">Zurück</button>
+    <button class="act primary" id="next">Weiter</button>
+  </footer>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="tour-window.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Selbsthilfe</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 22px; max-width: none; }
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .top img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; }
+  .top h1 { margin: 0; font: 700 22px "Pixelify Sans", monospace; flex: 1; }
+  .top h1 span { color: var(--teal); }
+  .lead { color: var(--muted); margin: 0 0 14px; font-size: 13.5px; }
+  .tool { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .tool .head { display: flex; gap: 12px; align-items: center; }
+  .tool .head .t { flex: 1; min-width: 0; }
+  .tool .head b { display: block; font-size: 14.5px; }
+  .tool .head small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .confirm { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(244,208,63,.08); border: 1px solid rgba(244,208,63,.35); font-size: 13px; }
+  .confirm span { flex: 1; }
+  .res { margin-top: 10px; padding: 9px 11px; border-radius: 8px; background: #0e1218; border-left: 4px solid var(--ok); font-size: 13.5px; }
+  .res.bad { border-left-color: var(--bad); } .res.warn { border-left-color: var(--gold); } .res.busy { border-left-color: var(--teal); color: var(--muted); }
+  .checks { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .checks li { display: grid; grid-template-columns: 14px 170px 1fr; gap: 8px; align-items: baseline; font-size: 13px; }
+  .checks i { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); display: inline-block; }
+  .checks i.warn { background: var(--gold); } .checks i.bad { background: var(--bad); } .checks i.info { background: #5b8def; }
+  .checks small { color: var(--muted); word-break: break-word; }
+  .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .help { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--line); font-size: 13.5px; }
+  .help b { display: block; margin-bottom: 4px; }
+  .help a { color: var(--teal); cursor: pointer; text-decoration: underline; margin-right: 14px; }
+  @media (max-width: 560px) { .checks li { grid-template-columns: 14px 1fr; } .checks small { grid-column: 2; } }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="selfhelp-window.js"></script>
+</body>
+</html>

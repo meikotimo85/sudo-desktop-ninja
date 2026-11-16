@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<title>Sudo – Erinnerungen &amp; Notizen</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --ok:#3ccf7a; --note:#f4d03f; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding: 18px 20px; }
+  h1 { margin: 0 0 10px; font: 700 20px "Pixelify Sans", monospace; }
+  h1 span { color: var(--teal); }
+  #inp { width: 100%; padding: 12px 14px; font: 16px "Segoe UI", sans-serif; border: 2px solid var(--teal); border-radius: 8px; background: #0e1218; color: var(--fg); outline: none; }
+  #prev { min-height: 24px; margin: 8px 2px 0; font-size: 13.5px; color: var(--muted); }
+  #prev b { color: var(--fg); font-weight: 600; }
+  #prev .t { color: var(--teal); }
+  #prev .n { color: var(--note); }
+  .ex { margin: 2px 2px 14px; font-size: 12.5px; color: var(--muted); }
+  .ex code { font: 12px Consolas, monospace; background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+  h2 { margin: 14px 0 6px; font: 600 11.5px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  li { display: grid; grid-template-columns: 112px 1fr auto; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 6px 6px 10px; }
+  li.note { grid-template-columns: 1fr auto; border-left: 3px solid var(--note); }
+  li .w { font: 12.5px Consolas, monospace; color: var(--teal); }
+  li .x { min-width: 0; word-break: break-word; user-select: text; }
+  li button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 5px; padding: 2px 9px; cursor: pointer; font: 12px "Segoe UI", sans-serif; }
+  li button:hover { color: var(--fg); }
+  .empty { color: var(--muted); font-size: 13px; }
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <h1><span>sudo</span> merkt sich das</h1>
+  <input id="inp" type="text" autocomplete="off" spellcheck="false" placeholder="z. B. 20m Kunde zurückrufen">
+  <div id="prev"></div>
+  <p class="ex">Beispiele: <code>20m Kunde anrufen</code> <code>1h30 Pause</code> <code>14:30 Teams-Call</code> <code>morgen 9 Backup prüfen</code> · ohne Zeit = Notiz · Enter speichert, Esc schließt</p>
+  <h2>Anstehende Erinnerungen</h2>
+  <ul id="rem"></ul>
+  <h2>Notizen</h2>
+  <ul id="notes"></ul>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="quick-window.js"></script>
+</body>
+</html>

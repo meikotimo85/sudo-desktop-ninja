@@ -1,0 +1,127 @@
+{
+  "name": "sudo-desktop-ninja",
+  "productName": "Sudo",
+  "version": "1.11.0",
+  "description": "Sudo – der Desktop-Ninja für IT-Leute",
+  "main": "main.js",
+  "author": "MeikoSoft",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable --x64 --publish never",
+    "sheet": "node tools/build-sheet.js",
+    "dist:portable": "electron-builder --win portable --x64 --publish never",
+    "dist:setup": "electron-builder --win nsis --x64 --publish never",
+    "dist:msi": "electron-builder --win msi --x64 --publish never",
+    "dist:all": "electron-builder --win nsis msi portable --x64 --publish never"
+  },
+  "dependencies": {
+    "@fontsource/dotgothic16": "^5.3.1",
+    "@fontsource/pixelify-sans": "5.3.0",
+    "electron-updater": "6.8.10",
+    "koffi": "2.16.3",
+    "uiohook-napi": "1.5.5"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "net.meikosoft.sudo",
+    "productName": "Sudo",
+    "files": [
+      "preload-visit.js",
+      "preload-privacy.js",
+      "zentrale.js",
+      "deck.js",
+      "health.js",
+      "quiz.js",
+      "preload-quiz.js",
+      "selfhelp.js",
+      "ops.js",
+      "youtube.js",
+      "diag.js",
+      "slow.js",
+      "habits.js",
+      "checkin.js",
+      "preload-meet.js",
+      "preload-stimmung.js",
+      "preload-start.js",
+      "preload-verlauf.js",
+      "preload-wissen.js",
+      "preload-selfhelp.js",
+      "preload-hinweise.js",
+      "preload-music.js",
+      "preload-ask.js",
+      "ask-core.js",
+      "ask.js",
+      "preload-lage.js",
+      "intel.js",
+      "main.js",
+      "preload.js",
+      "preload-settings.js",
+      "preload-stats.js",
+      "CHANGELOG.md",
+      "preload-tour.js",
+      "preload-settings-center.js",
+      "preload-wardrobe.js",
+      "preload-quick.js",
+      "preload-tools.js",
+      "reminders.js",
+      "watch.js",
+      "work.js",
+      "preload-work.js",
+      "win32.js",
+      "renderer/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/{test,tests,docs,doc,example,examples}/**"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**/*",
+      "node_modules/uiohook-napi/**/*"
+    ],
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "Sudo-${version}-portable.exe"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "copyright": "© MeikoSoft",
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Sudo-Setup-${version}.exe",
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sudo",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "msi": {
+      "oneClick": true,
+      "perMachine": true,
+      "artifactName": "Sudo-${version}.msi",
+      "upgradeCode": "07483f7e-961e-4428-b7e4-754ecf4f2568",
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sudo",
+      "runAfterFinish": false
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://updates.meikosoft.net/sudo/"
+      }
+    ]
+  }
+}

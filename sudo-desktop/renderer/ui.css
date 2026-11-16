@@ -1,0 +1,64 @@
+/* ui.css – gemeinsames Aussehen für Einstellungen und IT-Lage */
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --side:#0e1219; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --ok:#3ccf7a; --bad:#ff6b70; --gold:#f4d03f; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; display: grid; grid-template-columns: 190px 1fr; }
+  nav { background: var(--side); border-right: 1px solid var(--line); padding: 16px 8px; display: flex; flex-direction: column; gap: 2px; }
+  nav h1 { margin: 0 8px 14px; font: 700 21px "Pixelify Sans", monospace; }
+  nav h1 span { color: var(--teal); }
+  nav button { text-align: left; background: none; border: 0; color: var(--muted); padding: 8px 10px; border-radius: 6px; font: 500 14px "Segoe UI", sans-serif; cursor: pointer; }
+  nav button:hover { background: #1a2130; color: var(--fg); }
+  nav button[aria-selected="true"] { background: #1f2a3a; color: var(--fg); box-shadow: inset 3px 0 0 var(--teal); }
+  nav .ver { margin-top: auto; padding: 0 10px; font: 12px Consolas, monospace; color: var(--muted); }
+  main { padding: 20px 24px 28px; overflow-y: auto; min-width: 0; }
+  h2 { margin: 0 0 4px; font: 600 19px "Segoe UI", sans-serif; }
+  .sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 14px; margin-bottom: 12px; }
+  section h3 { margin: 10px 0 2px; font: 600 11.5px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #222a38; }
+  section h3 + .row { border-top: 0; }
+  .row .t { flex: 1; min-width: 0; }
+  .row .t b { display: block; font-weight: 600; font-size: 13.5px; }
+  .row .t small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  /* Schalter */
+  .sw { position: relative; width: 40px; height: 22px; flex: none; }
+  .sw input { opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; position: absolute; inset: 0; z-index: 1; }
+  .sw i { position: absolute; inset: 0; border-radius: 11px; background: #343c4d; transition: background .15s; }
+  .sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #cfd5df; transition: transform .15s; }
+  .sw input:checked + i { background: var(--teal); }
+  .sw input:checked + i::after { transform: translateX(18px); background: #062424; }
+  .sw input:focus-visible + i { outline: 2px solid var(--teal); outline-offset: 2px; }
+  select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #0e1218; color: var(--fg); font: 13px "Segoe UI", sans-serif; max-width: 260px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex: none; }
+  .seg button { background: #0e1218; border: 0; color: var(--muted); padding: 6px 12px; font: 500 13px "Segoe UI", sans-serif; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--teal); color: #062424; font-weight: 600; }
+  button.act { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: #222938; color: var(--fg); font: 600 13px "Segoe UI", sans-serif; cursor: pointer; flex: none; }
+  button.act:hover { border-color: #3d4a5f; }
+  button.act.primary { background: var(--teal); border-color: var(--teal); color: #062424; }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #222a38; color: var(--muted); }
+  .pill.ok { background: rgba(60,207,122,.15); color: var(--ok); } .pill.bad { background: rgba(255,107,112,.15); color: var(--bad); } .pill.gold { background: rgba(244,208,63,.15); color: var(--gold); }
+  .msg { min-height: 20px; margin: 4px 0 0; font-size: 13px; color: var(--ok); }
+  .msg.bad { color: var(--bad); }
+  dl.kv { display: grid; grid-template-columns: 170px 1fr; gap: 6px 12px; margin: 8px 0 12px; font-size: 13px; }
+  dl.kv dt { color: var(--muted); } dl.kv dd { margin: 0; font-family: Consolas, ui-monospace, monospace; word-break: break-all; }
+  pre.log { margin: 6px 0 12px; max-height: 260px; overflow: auto; background: #0e1218; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; white-space: pre-wrap; user-select: text; }
+  .hero { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .hero img { width: 72px; height: 72px; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; }
+  .hero b { font: 700 26px "Pixelify Sans", monospace; display: block; }
+  .bar { height: 6px; background: #0e1218; border-radius: 3px; overflow: hidden; margin-top: 4px; width: 160px; }
+  .bar i { display: block; height: 100%; background: var(--teal); }
+  [hidden] { display: none !important; }
+  .form { padding: 9px 0 12px; display: grid; gap: 8px; border-top: 1px solid #222a38; }
+  section h3 + .form { border-top: 0; }
+  .form .line { display: flex; gap: 8px; align-items: center; }
+  .form .line > input { flex: 1; min-width: 0; }
+  .note { font-size: 12.5px; color: var(--muted); margin: 0; }
+  input.inp, input[type=text].inp { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #0e1218; color: var(--fg); font: 13px "Segoe UI", sans-serif; }
+  input.inp:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  /* 1.4.2: Formular der Ninja-Leiste */
+  .form .line > label:first-child:not(.chk) { flex: none; width: 150px; color: var(--muted); font-size: 12.5px; }
+  .form .line > label.chk { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-left: 158px; }

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<title>Sudo – Arbeitstag &amp; Pausen</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --ok:#3ccf7a; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding: 20px 24px 24px; }
+  h1 { margin: 0; font: 700 24px "Pixelify Sans", monospace; }
+  h1 span { color: var(--teal); }
+  .lead { margin: 4px 0 14px; color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
+  h2 { margin: 0 0 8px; font: 600 11.5px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+  .row label { flex: 1; }
+  .row .hint { color: var(--muted); font-size: 12.5px; }
+  input[type=number], input[type=time], input[type=text] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: #0e1218; color: var(--fg); font: 13px Consolas, ui-monospace, monospace; }
+  input[type=number] { width: 70px; }
+  input[type=text] { flex: 1; min-width: 0; font-family: "Segoe UI", sans-serif; }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .days { display: flex; gap: 4px; }
+  .days label { display: grid; place-items: center; width: 40px; height: 30px; border: 1px solid var(--line); border-radius: 5px; background: #0e1218; cursor: pointer; font-size: 13px; }
+  .days input { display: none; }
+  .days label:has(input:checked) { background: var(--teal); border-color: var(--teal); color: #062424; font-weight: 600; }
+  .brk { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .brk .min { width: 64px; }
+  button { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: #222938; color: var(--fg); font: 600 13px "Segoe UI", sans-serif; cursor: pointer; }
+  button.primary { background: var(--teal); border-color: var(--teal); color: #062424; }
+  button.x { padding: 5px 9px; }
+  .actions { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+  #msg { color: var(--ok); font-size: 13px; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <h1><span>sudo</span> · Arbeitstag</h1>
+  <p class="lead">Sudo merkt sich deinen Arbeitsbeginn und erinnert dich an Pausen. Alles bleibt auf diesem PC.</p>
+
+  <section>
+    <h2>Allgemein</h2>
+    <div class="row"><input type="checkbox" id="enabled"><label for="enabled">Arbeitstag-Funktionen aktiv</label></div>
+    <div class="row"><span style="flex:1">Arbeitstage</span><div class="days" id="days"></div></div>
+    <div class="row"><input type="checkbox" id="targetOn"><label for="targetOn">Feierabend-Hinweis nach</label><input type="number" id="targetH" min="1" max="12" step="0.5"><span class="hint">Std. Arbeit (+ Pausen)</span></div>
+  </section>
+
+  <section>
+    <h2>Feste Pausen</h2>
+    <div id="breaks"></div>
+    <button id="addBreak">+ Pause hinzufügen</button>
+    <p class="hint" style="margin:8px 0 0;color:var(--muted);font-size:12.5px">Sudo kündigt jede Pause 5 Minuten vorher an. Läuft gerade ein Meeting, meldet er sich danach.</p>
+  </section>
+
+  <section>
+    <h2>Erinnerungen während der Arbeit</h2>
+    <div class="row"><input type="checkbox" id="standOn"><label for="standOn">Aufstehen / Stehtisch nach</label><input type="number" id="standM" min="10" max="240"><span class="hint">Min.</span></div>
+    <div class="row"><input type="checkbox" id="eyesOn"><label for="eyesOn">Augenpause (20 Sek.) nach</label><input type="number" id="eyesM" min="10" max="240"><span class="hint">Min.</span></div>
+    <div class="row"><input type="checkbox" id="waterOn"><label for="waterOn">Trinken nach</label><input type="number" id="waterM" min="10" max="240"><span class="hint">Min.</span></div>
+    <p class="hint" style="margin:6px 0 0;color:var(--muted);font-size:12.5px">Gezählt wird nur aktive Zeit am PC. Bist du 5 Minuten weg, gilt das als Pause und die Zähler beginnen neu.</p>
+  </section>
+
+  <section>
+    <h2>Besondere Tage</h2>
+    <div class="row"><label for="bday">Mein Geburtstag</label><input type="text" id="bday" placeholder="TT.MM" maxlength="6" style="width:90px"></div>
+    <div class="row"><label for="jub">Firmengründung / Jubiläum</label><input type="text" id="jub" placeholder="TT.MM.JJJJ" maxlength="10" style="width:120px"></div>
+    <div class="row"><input type="checkbox" id="seasonal"><label for="seasonal">Saisonale Hüte &amp; Effekte (Schnee, Feuerwerk, Ostereier …)</label></div>
+    <p class="hint" style="margin:6px 0 0;color:var(--muted);font-size:12.5px">An gesetzlichen Feiertagen in Niedersachsen pausieren die Arbeitstag-Erinnerungen automatisch.</p>
+  </section>
+
+  <section>
+    <h2>Bildschirmzeit</h2>
+    <div class="row"><input type="checkbox" id="screenTime"><label for="screenTime">Zeit pro Programm erfassen (nur Programmnamen, keine Fenstertitel)</label></div>
+  </section>
+
+  <div class="actions"><button class="primary" id="save">Speichern</button><span id="msg"></span></div>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="work-window.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Was hat Sudo gesagt?</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 22px; max-width: none; }
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .top h1 { margin: 0; font: 700 22px "Pixelify Sans", monospace; flex: 1; }
+  .top h1 span { color: var(--teal); }
+  .lead { color: var(--muted); margin: 0 0 12px; font-size: 13.5px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters button { background: var(--card); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 4px 11px; font-size: 12.5px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { border-color: var(--teal); color: var(--teal); background: rgba(37,211,208,.08); }
+  h2.day { font: 600 12px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 6px; }
+  .item { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: start; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: 9px; padding: 9px 12px; margin-bottom: 7px; }
+  .item.sys, .item.alert { border-left-color: var(--gold); } .item.bad { border-left-color: var(--bad); } .item.reminder { border-left-color: #5b8def; } .item.youtube { border-left-color: #e5484d; }
+  .item time { color: var(--muted); font: 12.5px "Segoe UI", sans-serif; padding-top: 2px; }
+  .item p { margin: 0; font-size: 13.5px; line-height: 1.45; white-space: pre-line; word-break: break-word; }
+  .item small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .item small b { color: var(--gold); font-weight: 600; }
+  .calm { padding: 34px 0; text-align: center; color: var(--muted); }
+  .calm b { display: block; font: 700 18px "Pixelify Sans", monospace; color: var(--fg); margin-bottom: 4px; }
+  .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; color: var(--muted); font-size: 12.5px; gap: 10px; flex-wrap: wrap; }
+  .foot .acts { display: flex; gap: 8px; }
+  /* 1.11: Suche */
+  .find { display: flex; gap: 8px; margin-bottom: 8px; }
+  .find .q { flex: 1; min-width: 0; }
+  .find .q, .find select, .range input { background: var(--card); border: 1px solid var(--line); color: var(--fg); border-radius: 8px; padding: 7px 10px; font: 13.5px "Segoe UI", sans-serif; }
+  .find .q:focus-visible, .find select:focus-visible, .range input:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .range { display: flex; gap: 14px; margin-bottom: 8px; color: var(--muted); font-size: 12.5px; }
+  .range[hidden] { display: none; }
+  .range label { display: flex; align-items: center; gap: 6px; }
+  .item small .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); }
+  .calm div { margin-top: 12px; }
+  .more { display: block; margin: 10px auto 0; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="verlauf-window.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Security-Quiz</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 22px; max-width: none; }
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .top img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; }
+  .top h1 { margin: 0; font: 700 22px "Pixelify Sans", monospace; flex: 1; }
+  .top h1 span { color: var(--teal); }
+  .score { font-size: 12.5px; color: var(--muted); text-align: right; }
+  .score b { display: block; font-size: 17px; color: var(--fg); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 18px; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 600; color: #12161f; background: var(--gold); border-radius: 4px; padding: 0 6px; margin-bottom: 8px; }
+  .q { font-size: 16.5px; line-height: 1.45; font-weight: 600; margin: 0 0 14px; }
+  .answers { display: grid; gap: 8px; }
+  .ans { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; text-align: left; width: 100%; padding: 11px 12px; border-radius: 8px;
+    border: 1px solid var(--line); background: #0e1218; color: var(--fg); font: 14.5px/1.4 "Segoe UI", sans-serif; cursor: pointer; }
+  .ans:hover:not(:disabled) { border-color: #3e4a62; background: #121826; }
+  .ans:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .ans .k { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: #222a38; font: 700 13px "Pixelify Sans", monospace; }
+  .ans:disabled { cursor: default; }
+  .ans.right { border-color: var(--ok); background: rgba(60,207,122,.12); }
+  .ans.right .k { background: var(--ok); color: #0b1a10; }
+  .ans.wrong { border-color: var(--bad); background: rgba(255,107,112,.12); }
+  .ans.wrong .k { background: var(--bad); color: #2a0b0c; }
+  .ans.dim { opacity: .55; }
+  .why { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #0e1218; border-left: 4px solid var(--teal); font-size: 14px; line-height: 1.5; }
+  .why b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .why.no { border-left-color: var(--bad); }
+  .why a { color: var(--teal); cursor: pointer; text-decoration: underline; }
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .empty { color: var(--muted); padding: 20px 0; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="quiz-window.js"></script>
+</body>
+</html>

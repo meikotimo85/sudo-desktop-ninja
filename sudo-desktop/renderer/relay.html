@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<title>Sudo – Relay einrichten</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --ok:#3ccf7a; --bad:#ff5a5f; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding: 22px 24px; }
+  h1 { margin: 0 0 4px; font: 700 24px "Pixelify Sans", monospace; }
+  h1 span { color: var(--teal); }
+  .lead { margin: 0 0 18px; color: var(--muted); }
+  label { display: block; margin: 14px 0 5px; font-weight: 600; font-size: 13px; }
+  .hint { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+  input[type=text], input[type=password] { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: #0e1218; color: var(--fg); font: 13px Consolas, ui-monospace, monospace; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 16px; font-weight: 600; }
+  .check input { width: 16px; height: 16px; accent-color: var(--teal); }
+  .actions { display: flex; gap: 8px; margin-top: 20px; }
+  button { padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line); background: #222938; color: var(--fg); font: 600 13.5px "Segoe UI", sans-serif; cursor: pointer; }
+  button.primary { background: var(--teal); border-color: var(--teal); color: #062424; }
+  button:disabled { opacity: .6; cursor: default; }
+  #msg { min-height: 42px; margin-top: 14px; padding: 9px 11px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); font-size: 13px; }
+  #msg.ok { border-color: rgba(60,207,122,.5); color: #a8f0c4; }
+  #msg.bad { border-color: rgba(255,90,95,.5); color: #ffb1b4; }
+  .status { margin-top: 16px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #5b6476; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 6px var(--ok); } .dot.error { background: var(--bad); }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <h1><span>sudo</span>-relay</h1>
+  <p class="lead">Holt Ereignisse von deinem Webspace ab, zum Beispiel Meldungen deiner Backup-Prüfung.</p>
+
+  <label for="url">Relay-Adresse</label>
+  <input id="url" type="text" placeholder="https://deine-domain.de/sudo-relay" spellcheck="false">
+  <p class="hint">Steht auf der Startseite des Relays unter „Relay-Adresse für Sudo“.</p>
+
+  <label for="token">Lese-Token</label>
+  <input id="token" type="password" placeholder="read_token aus config.php" spellcheck="false" autocomplete="off">
+  <p class="hint">Hier gehört der <b>read_token</b> hin. Der send_token bleibt in deinen Server-Skripten.</p>
+
+  <label class="check"><input id="enabled" type="checkbox"> Relay abfragen (alle 15 Sekunden)</label>
+
+  <div class="actions">
+    <button id="test">Verbindung testen</button>
+    <button id="save" class="primary">Speichern</button>
+  </div>
+  <div id="msg">Noch nichts getestet.</div>
+  <div class="status"><i class="dot" id="dot"></i><span id="state">Status: aus</span></div>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="relay.js"></script>
+</body>
+</html>

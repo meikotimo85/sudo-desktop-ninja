@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Was weiß Sudo über mich?</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 26px; max-width: none; }
+  .top { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+  .top img { width: 52px; height: 52px; image-rendering: pixelated; border-radius: 10px; border: 1px solid var(--line); background: #0e1218; }
+  .top h1 { margin: 0; font: 700 23px "Pixelify Sans", monospace; line-height: 1.2; }
+  .top h1 span { color: var(--teal); }
+  .lead { margin: 10px 0 16px; color: var(--muted); max-width: 70ch; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+  .two section { margin: 0; padding-bottom: 10px; }
+  ul.check { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 9px; }
+  ul.check li { display: grid; grid-template-columns: 20px 1fr; gap: 6px; font-size: 13.5px; }
+  ul.check li::before { content: "✓"; color: var(--ok); font-weight: 700; }
+  ul.check.no li::before { content: "✕"; color: var(--bad); }
+  ul.check small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  .row .v { font: 600 13px Consolas, monospace; color: var(--fg); text-align: right; white-space: nowrap; }
+  .row .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+  .grid-c { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; padding: 8px 0 12px; }
+  .grid-c div { background: #0e1218; border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+  .grid-c b { display: block; font: 600 15px Consolas, monospace; }
+  .grid-c small { color: var(--muted); font-size: 11.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .chips span { font-size: 11.5px; background: #0e1218; border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; color: var(--muted); }
+  .pill.off { color: var(--muted); border-color: var(--line); }
+  .foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+  .info { font-size: 13px; color: var(--muted); padding: 8px 0 12px; }
+  .info p { margin: 6px 0; }
+  .info b { color: var(--fg); font-weight: 600; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="privacy-window.js"></script>
+</body>
+</html>

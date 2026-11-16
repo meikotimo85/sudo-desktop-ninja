@@ -1,0 +1,39 @@
+/* win.css – 1.10: gemeinsames Aussehen der kleinen Fenster (Meeting-Check, Kurze Frage, Start-Checkliste) */
+body { display: block; }
+main { padding: 18px 22px 22px; max-width: none; }
+.top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.top img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; }
+.top h1 { margin: 0; font: 700 22px "Pixelify Sans", monospace; flex: 1; }
+.top h1 span { color: var(--teal); }
+.lead { color: var(--muted); margin: 0 0 14px; font-size: 13.5px; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.box .head { display: flex; gap: 12px; align-items: center; }
+.box .head .t { flex: 1; min-width: 0; }
+.box .head b { display: block; font-size: 14.5px; }
+.box .head small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.state { width: 12px; height: 12px; border-radius: 50%; background: #4a5367; flex: none; }
+.state.ok { background: var(--ok); } .state.warn { background: var(--gold); } .state.bad { background: var(--bad); } .state.busy { background: var(--teal); }
+.res { margin-top: 10px; padding: 9px 11px; border-radius: 8px; background: #0e1218; border-left: 4px solid var(--ok); font-size: 13.5px; }
+.res.bad { border-left-color: var(--bad); } .res.warn { border-left-color: var(--gold); } .res.info { border-left-color: var(--teal); }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+select.inp, input.inp, textarea.inp { width: 100%; max-width: none; background: #0e1218; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: 13.5px "Segoe UI", sans-serif; }
+textarea.inp { resize: vertical; min-height: 60px; }
+.meter { height: 12px; border-radius: 6px; background: #0e1218; border: 1px solid var(--line); overflow: hidden; margin-top: 10px; }
+.meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--gold)); transition: width .08s linear; }
+video { width: 100%; max-height: 220px; border-radius: 8px; background: #000; margin-top: 10px; display: block; }
+.stars { display: flex; gap: 6px; margin: 10px 0 4px; }
+.stars button { width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; color: var(--muted); font: 700 20px "Segoe UI", sans-serif; cursor: pointer; }
+.stars button.on { background: rgba(244,208,63,.16); color: var(--gold); border-color: rgba(244,208,63,.5); }
+.stars button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; max-width: 250px; }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid #222a38; }
+.check:first-child { border-top: 0; }
+.check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--teal); flex: none; cursor: pointer; }
+.check .t { flex: 1; min-width: 0; }
+.check .t b { display: block; font-size: 14px; }
+.check.done .t b { color: var(--muted); text-decoration: line-through; }
+.check .t small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.check .tag { font-size: 11.5px; color: var(--teal); }
+.progress { height: 10px; border-radius: 5px; background: #0e1218; border: 1px solid var(--line); overflow: hidden; margin: 6px 0 14px; }
+.progress i { display: block; height: 100%; background: var(--teal); }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Auf Besuch schicken</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 22px; max-width: none; }
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .top img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); background: #0e1218; }
+  .top h1 { margin: 0; font: 700 22px "Pixelify Sans", monospace; flex: 1; }
+  .top h1 span { color: var(--teal); }
+  .left { font-size: 12.5px; color: var(--muted); text-align: right; }
+  .left b { display: block; font-size: 18px; color: var(--fg); }
+  .peers, .kinds { display: grid; gap: 8px; padding: 10px 0 12px; }
+  .peers { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .kinds { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .pick { text-align: left; background: #0e1218; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--fg); cursor: pointer; font: 14px "Segoe UI", sans-serif; }
+  .pick b { display: block; font-weight: 600; }
+  .pick small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .pick:hover { border-color: #3d4a5f; }
+  .pick[aria-pressed="true"] { border-color: var(--teal); background: rgba(37,211,208,.1); }
+  .pick:disabled { opacity: .45; cursor: default; }
+  .pick .ic { font: 700 18px "Pixelify Sans", monospace; color: var(--teal); }
+  .note { display: grid; gap: 6px; padding: 4px 0 12px; }
+  .note input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; background: #0e1218; color: var(--fg); font: 14px "Segoe UI", sans-serif; }
+  .note small { color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+  .actions { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+  .empty { color: var(--muted); padding: 10px 0 14px; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="visit-window.js"></script>
+</body>
+</html>

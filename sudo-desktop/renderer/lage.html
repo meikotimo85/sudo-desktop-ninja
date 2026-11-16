@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – IT-Lage</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  .head { display: flex; align-items: flex-start; gap: 12px; }
+  .head > div { flex: 1; min-width: 0; }
+  .stamp { font-size: 12px; color: var(--muted); }
+  .svc { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid #222a38; }
+  section h3 + .svc { border-top: 0; }
+  .svc .t { flex: 1; min-width: 0; }
+  .svc .t b { font-weight: 600; font-size: 13.5px; }
+  .svc .t p { margin: 3px 0 0; font-size: 12.5px; color: #b9c2d0; white-space: pre-line; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex: none; background: var(--ok); }
+  .dot.bad { background: var(--bad); box-shadow: 0 0 0 3px rgba(255,107,112,.18); }
+  .dot.warn { background: var(--gold); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .tags span { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; background: #222a38; color: #c3cbd8; }
+  .tags span.hot { background: rgba(255,107,112,.15); color: var(--bad); }
+  input[type=text], input[type=password], textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #0e1218; color: var(--fg); font: 13px "Segoe UI", sans-serif; }
+  textarea { font-family: Consolas, ui-monospace, monospace; min-height: 70px; resize: vertical; }
+  input:focus-visible, textarea:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .form { padding: 9px 0 12px; display: grid; gap: 8px; border-top: 1px solid #222a38; }
+  .form .line { display: flex; gap: 8px; align-items: center; }
+  .note { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .note a, a.lnk { color: var(--teal); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .big { font-size: 22px; font-weight: 700; }
+  .empty { padding: 12px 0; color: var(--muted); font-size: 13px; }
+  .new { color: var(--gold); font-weight: 700; font-size: 11px; margin-left: 6px; }
+  .src { margin-top: 14px; font-size: 12px; color: var(--muted); }
+  main { overflow-x: hidden; }
+  .row .t small { overflow-wrap: anywhere; }
+  .form .line > input { flex: 1; min-width: 0; }
+  .sev { min-width: 66px; text-align: center; flex: none; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .sev.kritisch { background: #ff3b47; color: #fff; } .sev.hoch { background: rgba(255,107,112,.18); color: var(--bad); }
+  .ampel { display: flex; gap: 14px; align-items: center; padding: 14px 0 10px; }
+  .ampel .big-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--ok); flex: none; }
+  .ampel .big-dot.warn { background: var(--gold); } .ampel .big-dot.bad { background: var(--bad); } .ampel .big-dot.unknown { background: #5b6680; }
+  .dot.unknown { background: #5b6680; }
+  .fix { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .sev.mittel { background: rgba(244,208,63,.15); color: var(--gold); } .sev.niedrig, .sev.info { background: #222a38; color: var(--muted); }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <nav>
+    <h1><span>sudo</span> lage</h1>
+    <button data-tab="pc">Mein PC</button>
+    <button data-tab="status">Microsoft &amp; Azure</button>
+    <button data-tab="feeds">Sicherheitswarnungen</button>
+    <button data-tab="leaks">Datenlecks</button>
+    <div class="ver" id="ver"></div>
+  </nav>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="lage-window.js"></script>
+</body>
+</html>

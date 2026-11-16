@@ -1,0 +1,46 @@
+SUDO – EIGENE SKINS GESTALTEN (ab 1.9)
+=======================================
+
+Fertige Farbvarianten (Feuerwehr, Matrix, Royal, Gold, Schnee) gibt es
+ohne Basteln: Tray → Skin.
+
+Eigene Skins liegen in diesem Ordner, je Skin ein Unterordner:
+
+  skins\
+    Feuerwehr Nettelrede\   sudo-sheet.png + sudo-sheet.json
+    Pixel-Pirat\            sudo-sheet.png + sudo-sheet.json
+    vorlage\                aktuelle Kopie der Standardgrafik (wird nicht angezeigt)
+
+So geht's:
+  1. Ordner "vorlage" kopieren und umbenennen (z. B. "Mein Skin").
+  2. sudo-sheet.png darin bearbeiten.
+  3. Tray → Skin → "Mein Skin" wählen (der Name des Ordners).
+     Nach weiteren Änderungen: Einstellungen → Daten & Verbindungen → Skin → Neu laden.
+
+Ein alter eigener Skin aus Version 1.8 oder früher (Ordner "skin" daneben)
+funktioniert weiter und heißt in der Auswahl "Eigener Skin".
+
+Fehlen in einem älteren Skin Hüte und Brillen, nimmt Sudo das Zubehör
+automatisch aus der Standardgrafik.
+
+Bearbeiten (z. B. mit Aseprite, LibreSprite oder Piskel):
+  1. sudo-sheet.png öffnen.
+  2. Das Bild besteht aus Kacheln von 48 × 52 Pixeln (8 pro Zeile).
+     In Aseprite: Ansicht → Raster → Rastereinstellungen → 48 × 52.
+  3. Pixel innerhalb der Kacheln ändern, als PNG speichern.
+  4. Tray → Skin → deinen Skin wählen (bzw. Einstellungen → Skin → Neu laden).
+
+Wichtig:
+  - Kacheln nicht verschieben und die Bildgröße nicht ändern.
+    Wo welche Pose liegt, steht in sudo-sheet.json.
+  - Die Füße stehen in jeder Kachel auf der untersten Pixelzeile (Zeile 52).
+  - Magenta (#FF00FF) und Dunkelmagenta (#A000A0) sind der Gürtel.
+    Sudo färbt sie automatisch in die Farbe seines Rangs um.
+  - Augen und Stirnband-Enden liegen in eigenen Kacheln (Zeile 4 und 5),
+    damit Sudo blinzeln und das Band wehen lassen kann. Die Augen werden
+    passend zur Kopfposition der jeweiligen Pose darübergelegt.
+  - Zeichnung immer nach RECHTS schauend. Nach links spiegelt Sudo selbst.
+
+Zurück zum Standard: Dateien in diesem Ordner löschen und Skin neu laden.
+Ist die Datei fehlerhaft, nimmt Sudo automatisch die Standardgrafik und
+schreibt einen Hinweis ins Ereignisprotokoll.

@@ -1,0 +1,26 @@
+# Sudo-Zentrale (PHP) – alle Anfragen ohne echte Datei gehen an index.php
+Options -Indexes
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Bei Installation in einem Unterordner ggf. anpassen, z. B. RewriteBase /sudo/
+  RewriteBase /
+  # Interne Ordner niemals ausliefern
+  RewriteRule ^(app|data|werkzeuge)(/|$) - [F,L]
+  RewriteRule ^config(\.sample)?\.php$ - [F,L]
+  # Authorization-Kopfzeile an PHP durchreichen (bei manchen Hostern nötig)
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ index.php [L,QSA]
+</IfModule>
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Frame-Options "DENY"
+  <FilesMatch "\.html$">
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self' https://login.microsoftonline.com; base-uri 'none'"
+  </FilesMatch>
+</IfModule>
+<FilesMatch "\.(sqlite|db|log|secret)$">
+  Require all denied
+</FilesMatch>

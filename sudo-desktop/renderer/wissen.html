@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Anleitungen</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: block; }
+  main { padding: 18px 22px 22px; max-width: none; }
+  .top h1 { margin: 0 0 4px; font: 700 22px "Pixelify Sans", monospace; }
+  .lead { color: var(--muted); margin: 0 0 12px; font-size: 13.5px; }
+  .search { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search input { flex: 1; background: #0e1218; border: 1px solid var(--line); color: var(--fg); border-radius: 8px; padding: 9px 12px; font-size: 14.5px; }
+  .search input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  h2.sec { font: 600 12px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 12px 0 6px; }
+  .hit { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; margin-bottom: 8px; cursor: pointer; }
+  .hit:hover, .hit:focus-visible { border-color: var(--teal); outline: none; }
+  .hit .ico { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; font: 700 11px "Pixelify Sans", monospace; color: #0b0d12; background: #5b8def; }
+  .hit .ico.docx, .hit .ico.doc { background: #5b8def; } .hit .ico.pptx, .hit .ico.ppt { background: #e8a93a; } .hit .ico.xlsx, .hit .ico.xls { background: #3ccf7a; }
+  .hit .ico.pdf { background: #e5484d; } .hit .ico.aspx { background: var(--teal); }
+  .hit b { display: block; font-size: 14.5px; }
+  .hit small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .hit p { margin: 5px 0 0; font-size: 13px; line-height: 1.45; color: #c9d1dc; }
+  .hit mark { background: rgba(244,208,63,.25); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .calm { padding: 30px 0; text-align: center; color: var(--muted); }
+  .calm b { display: block; font: 700 18px "Pixelify Sans", monospace; color: var(--fg); margin-bottom: 4px; }
+  .foot { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body>
+  <main id="main"></main>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="wissen-window.js"></script>
+</body>
+</html>

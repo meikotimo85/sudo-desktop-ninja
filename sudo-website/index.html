@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sudo – der Desktop-Ninja</title>
+<meta name="description" content="Sudo ist ein kleiner Pixel-Ninja auf deiner Taskleiste: Er reagiert aufs Tippen, erinnert an Pausen und zeigt Neuigkeiten aus der IT. Hier erfährst du, was er kann und was er über dich weiß.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="img/icon.png">
+<link rel="stylesheet" href="css/sudo.css">
+<script src="einstellungen.js" defer></script>
+<script src="js/sudo.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Sudo – zum Seitenanfang"><img src="img/icon.png" alt="" width="32" height="32"><span>sudo</span></a>
+  <nav aria-label="Seitenbereiche">
+    <a href="#funktionen">Funktionen</a>
+    <a href="#bedienung">Bedienung</a>
+    <a href="#datenschutz">Datenschutz</a>
+    <a href="#fragen">Fragen</a>
+    <a href="#hilfe">Hilfe</a>
+  </nav>
+</header>
+
+<main id="inhalt">
+  <section class="hero" aria-labelledby="hero-titel">
+    <div class="hero-text">
+      <h1 id="hero-titel">Das ist Sudo.</h1>
+      <p class="lead">Sudo ist ein kleiner Pixel-Ninja, der auf deiner Taskleiste wohnt. Er reagiert, wenn du tippst und speicherst, erinnert dich an Pausen und meldet sich, wenn es Neuigkeiten aus der IT gibt.</p>
+      <p>Deine IT hat ihn auf deinem PC installiert. Auf dieser Seite steht, was er kann, wie du ihn bedienst und was er über dich weiß.</p>
+      <p class="actions"><a class="btn primary" href="#funktionen">Funktionen ansehen</a><a class="btn" href="#datenschutz">Datenschutz lesen</a></p>
+    </div>
+    <div class="desk" id="desk">
+      <canvas id="stage" aria-hidden="true"></canvas>
+      <button type="button" id="poke" class="poke" aria-label="Sudo anstupsen"></button>
+      <p id="speech" class="speech" role="status" hidden></p>
+      <div class="taskbar">
+        <span class="start" aria-hidden="true"></span>
+        <span class="apps" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="hint">Klick auf Sudo</span>
+        <span class="tray"><img src="img/icon.png" alt="" width="20" height="20"><time id="clock">09:41</time></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="funktionen" class="band" aria-labelledby="f-titel">
+    <h2 id="f-titel">Was Sudo macht</h2>
+    <div class="features">
+      <article class="feature">
+        <img src="img/pose-type.png" alt="Sudo sitzt am Laptop" width="192" height="256" loading="lazy">
+        <div><h3>Er tippt mit</h3>
+        <p>Wenn du schreibst, setzt sich Sudo an seinen Laptop. Nach Strg+S freut er sich, bei viel Rücktaste verdreht er die Augen. Er merkt sich nur, dass getippt wurde – nie, was.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-coffee.png" alt="Sudo trinkt Kaffee" width="192" height="256" loading="lazy">
+        <div><h3>Er erinnert an Pausen</h3>
+        <p>Nach längerer Zeit am Bildschirm schlägt Sudo eine kurze Pause vor: aufstehen, Augen entspannen, etwas trinken. Arbeitszeiten und feste Pausen stellst du unter „Arbeitstag &amp; Pausen“ ein.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-alarm.png" alt="Sudo hebt die Arme und schlägt Alarm" width="192" height="256" loading="lazy">
+        <div><h3>Er meldet Neuigkeiten aus der IT</h3>
+        <p>Störungen bei Microsoft 365, wichtige Sicherheitswarnungen des BSI und Mitteilungen deiner IT erscheinen als Sprechblase. Ein Klick auf die Blase öffnet die Details.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-book.png" alt="Sudo liest in einem Buch" width="192" height="256" loading="lazy">
+        <div><h3>Er beantwortet Fragen</h3>
+        <p>Mit Strg+Alt+S öffnest du „Frag Sudo“. Dahinter steckt die KI Claude. Die Funktion gibt es nur, wenn deine IT sie freigeschaltet hat.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-thumb.png" alt="Sudo zeigt einen Daumen nach oben" width="192" height="256" loading="lazy">
+        <div><h3>Er startet Werkzeuge</h3>
+        <p>Drück das Mausrad auf Sudo, und die Ninja-Leiste klappt auf: PowerShell, Explorer, Task-Manager und was du selbst einträgst. Mit Strg+Alt+K öffnest du den Werkzeugkasten mit Passwort-Generator, Base64, JSON und mehr.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-victory.png" alt="Sudo jubelt" width="192" height="256" loading="lazy">
+        <div><h3>Er besucht Kollegen</h3>
+        <p>Schick Sudo zu einer Kollegin oder einem Kollegen: mit Post-it, Kaffee, Gummiente – oder zu einem kurzen Shuriken-Duell. Das geht nur ein paar Mal am Tag und nie während eines Meetings.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-meditate.png" alt="Sudo meditiert" width="192" height="256" loading="lazy">
+        <div><h3>Er ist still im Meeting</h3>
+        <p>Sobald Teams oder Zoom ein Meeting zeigen, wird Sudo ruhig. Bei der Bildschirmfreigabe ist er nicht zu sehen, und im Vollbild versteckt er sich.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-check.png" alt="Sudo mit Monokel prüft etwas genau" width="192" height="256" loading="lazy">
+        <div><h3>Er prüft deinen PC</h3>
+        <p>Ist die Festplatte verschlüsselt, der Virenschutz aktuell, die Firewall an? Steht ein Neustart nach Updates aus? Sudo zeigt es als Ampel unter „IT-Lage“, „Mein PC“ – und weist höchstens einmal am Tag auf ein Problem hin.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-quiz.png" alt="Sudo mit Brille und Firmenausweis zeigt nach oben" width="192" height="256" loading="lazy">
+        <div><h3>Er stellt Sicherheitsfragen</h3>
+        <p>Ab und zu fragt Sudo kurz nach: Ist diese Mail echt? Was tun mit dem USB-Stick vom Parkplatz? Drei Fragen, eine Minute, mit Erklärung. Wer falsch liegt, lernt etwas – gezählt wird nur anonym.</p></div>
+      </article>
+      <article class="feature">
+        <img src="img/pose-help.png" alt="Sudo mit Bauhelm am Laptop" width="192" height="256" loading="lazy">
+        <div><h3>Er repariert Kleinkram</h3>
+        <p>Teams zeigt nichts an, Outlook hängt, das WLAN zickt? Unter „Selbsthilfe“ prüft Sudo das Netzwerk und repariert Teams, Outlook oder OneDrive mit einem Klick – ohne Adminrechte. Bei Störungen zeigt er die Hinweise deiner IT.</p></div>
+      </article>
+    </div>
+
+    <div class="wardrobe">
+      <div class="wardrobe-text">
+        <h3>Er sammelt Outfits</h3>
+        <p>Für gemeinsame Erfolge bekommt Sudo Geschenke: Hüte, Brillen, Krawatte – und übers Jahr verteilt saisonale Stücke wie Schal, Strohhut oder Hexenhut. Anprobieren kannst du sie über Rechtsklick auf das Sudo-Symbol und „Garderobe“.</p>
+      </div>
+      <ul class="outfits" aria-label="Beispiele aus der Garderobe">
+        <li><img src="img/pose-tophat.png" alt="Sudo mit Zylinder, Monokel und Fliege" width="192" height="256" loading="lazy"></li>
+        <li><img src="img/pose-hardhat.png" alt="Sudo mit Bauhelm und Krawatte" width="192" height="256" loading="lazy"></li>
+        <li><img src="img/pose-straw.png" alt="Sudo mit Strohhut und Blumenkette" width="192" height="256" loading="lazy"></li>
+        <li><img src="img/pose-santa.png" alt="Sudo mit Weihnachtsmütze und Schal" width="192" height="256" loading="lazy"></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="bedienung" class="band" aria-labelledby="b-titel">
+    <h2 id="b-titel">So bedienst du ihn</h2>
+    <p class="intro">Klicks neben Sudo gehen ganz normal an das Programm darunter. Nur Sudo selbst reagiert auf die Maus.</p>
+    <div class="controls">
+      <table>
+        <caption>Mit der Maus</caption>
+        <tbody>
+          <tr><th scope="row">Ziehen</th><td>Sudo an einen anderen Platz tragen – auch auf einen anderen Bildschirm.</td></tr>
+          <tr><th scope="row">Schwungvoll loslassen</th><td>Sudo fliegt ein Stück und landet auf dem nächsten Fenster.</td></tr>
+          <tr><th scope="row">Anklicken</th><td>Streicheln.</td></tr>
+          <tr><th scope="row">Doppelklicken</th><td>Hier wohnen: Sudo kehrt immer wieder an diesen Platz zurück.</td></tr>
+          <tr><th scope="row">Mausrad drücken</th><td>Ninja-Leiste mit Schnellstart öffnen.</td></tr>
+          <tr><th scope="row">Symbol unten rechts</th><td>Anklicken holt Sudo zur Maus. Rechtsklick öffnet das Menü mit allen Funktionen und den Einstellungen.</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Mit der Tastatur</caption>
+        <tbody>
+          <tr><th scope="row"><kbd>Strg</kbd><kbd>Alt</kbd><kbd>N</kbd></th><td>Erinnerung oder Notiz anlegen, z. B. „morgen 9 Uhr Angebot schicken“.</td></tr>
+          <tr><th scope="row"><kbd>Strg</kbd><kbd>Alt</kbd><kbd>S</kbd></th><td>Frag Sudo öffnen.</td></tr>
+          <tr><th scope="row"><kbd>Strg</kbd><kbd>Alt</kbd><kbd>K</kbd></th><td>Werkzeugkasten öffnen.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="datenschutz" class="band privacy" aria-labelledby="d-titel">
+    <h2 id="d-titel">Was Sudo über dich weiß</h2>
+    <p class="intro">Sudo läuft auf deinem PC. Zähler und Bildschirmzeit bleiben dort. Die Zentrale deiner IT sieht nur, ob und wann dein Sudo online war und – wenn eingeschaltet – die Ampel deines PCs. Nicht, wie viel du tippst oder womit du arbeitest.</p>
+    <div class="lists">
+      <div>
+        <h3>Das bemerkt Sudo im Moment</h3>
+        <ul class="yes">
+          <li><b>Dass du tippst, nicht was.</b> Er unterscheidet nur „Zeichen“, Rücktaste und Strg+S, Z, C und V.</li>
+          <li><b>Wo Fenster sind und wie sie heißen.</b> So kann er darauf stehen und Programme erkennen. Fenstertitel speichert er nicht.</li>
+          <li><b>Ob ein Meeting läuft.</b> Dann ist er still.</li>
+          <li><b>Wo die Maus ist.</b> Damit du ihn anklicken kannst.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Das macht Sudo nie</h3>
+        <ul class="no">
+          <li>Bildschirmfotos oder Aufnahmen machen</li>
+          <li>Mikrofon oder Kamera benutzen</li>
+          <li>Die Zwischenablage lesen</li>
+          <li>Tasteninhalte speichern oder senden</li>
+          <li>Dateien, Mails oder deinen Browserverlauf lesen</li>
+          <li>Daten an Werbe- oder Analysedienste schicken</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">Mit den echten Werten deines PCs: Rechtsklick auf das Sudo-Symbol und „Was weiß Sudo über mich?“. Dort kannst du auch eine Datenauskunft als Datei speichern.</p>
+  </section>
+
+  <section id="fragen" class="band" aria-labelledby="q-titel">
+    <h2 id="q-titel">Häufige Fragen</h2>
+    <div class="faq">
+      <details>
+        <summary>Sudo stört mich gerade. Was kann ich tun?</summary>
+        <p>Doppelklick auf einen ruhigen Platz, zum Beispiel am Bildschirmrand: Dort wohnt er dann und bleibt meistens zu Hause. In den Einstellungen unter „Verhalten“ schaltest du Kommentare zu Programmen, Töne und das Wandern zwischen Bildschirmen einzeln ab. Ganz beenden kannst du ihn über Rechtsklick auf das Symbol und „Beenden“.</p>
+      </details>
+      <details>
+        <summary>Ich sehe Sudo nicht mehr.</summary>
+        <p>Klick auf das Sudo-Symbol unten rechts im Infobereich – er kommt dann zur Maus. Bei Spielen, Videos oder Präsentationen im Vollbild versteckt er sich absichtlich. Auf dunklen Hintergründen hilft der helle Umriss: Einstellungen, „Allgemein“, „Umriss für dunkle Hintergründe“.</p>
+      </details>
+      <details>
+        <summary>Wie bekomme ich Sudo auf einen anderen Bildschirm?</summary>
+        <p>Zieh ihn einfach mit der Maus über die Bildschirmkante. Oder Rechtsklick auf das Symbol und „Auf Bildschirm …“. Unter „Allgemein“ legst du fest, auf welchem Bildschirm er nach dem Start erscheint.</p>
+      </details>
+      <details>
+        <summary>Bekommt meine Firma mit, wie viel ich arbeite?</summary>
+        <p>Nein. Zähler wie Tastenanschläge oder die Bildschirmzeit bleiben auf deinem PC. Die Bildschirmzeit kannst du unter „Arbeitstag &amp; Pausen“ auch ganz abschalten. Die Zentrale der IT sieht nur, ob dein Sudo online ist und – falls eingeschaltet – die Ampel deines PCs.</p>
+      </details>
+      <details>
+        <summary>Was meldet Sudo an die IT?</summary>
+        <p>Gerätename, Windows-Benutzer, deinen Anmeldenamen (meist deine E-Mail-Adresse, damit dir zum Beispiel ein zugewiesenes Ticket direkt angezeigt werden kann), die Sudo-Version und ob er online ist. Hat die IT den Gerätezustand eingeschaltet, kommt die Ampel dazu: BitLocker, Virenschutz, Firewall, Updates, Neustart und freier Speicher – nur „grün, gelb, rot“ und wenige Zahlen wie „Update vor 12 Tagen“. Keine Dateien, keine Programme, keine Inhalte.</p>
+      </details>
+      <details>
+        <summary>Sieht die IT, ob ich beim Quiz danebenliege?</summary>
+        <p>Nein. Die Zentrale zählt pro Frage nur, wie oft sie richtig oder falsch beantwortet wurde – ohne Gerät und ohne Namen. Deinen eigenen Stand sieht nur Sudo auf deinem PC. Das Quiz startest du jederzeit selbst über Rechtsklick auf das Symbol und „Security-Quiz …“.</p>
+      </details>
+      <details>
+        <summary>Sudo bittet mich um einen Neustart. Muss ich?</summary>
+        <p>Nach Updates werden Sicherheitslücken erst mit dem Neustart geschlossen. Deshalb bittet deine IT darum, meist mit einer Frist. Du entscheidest, wann: jetzt, in einer oder drei Stunden oder morgen früh. Sudo startet nie ohne deine Zustimmung neu und fragt nicht, während ein Meeting läuft. Bei „Jetzt neu starten“ hast du zwei Minuten zum Speichern und kannst noch abbrechen.</p>
+      </details>
+      <details>
+        <summary>Was passiert mit meinen Fragen an „Frag Sudo“?</summary>
+        <p>Deine Frage geht an die KI Claude und die Antwort kommt zurück. Der Verlauf liegt nur im Arbeitsspeicher und ist nach dem Schließen des Fensters weg. Läuft „Frag Sudo“ über die Zentrale, sieht die IT nur die Anzahl der Fragen und die Kosten, nicht die Fragen selbst.</p>
+      </details>
+      <details>
+        <summary>Ich möchte keinen Besuch von Kollegen.</summary>
+        <p>Einstellungen, „Verhalten“, und „Besuche erlauben“ ausschalten. Dann taucht dein Sudo auch nicht mehr in der Liste der anderen auf.</p>
+      </details>
+      <details>
+        <summary>Wie werde ich Sudo wieder los?</summary>
+        <p>Beenden geht jederzeit über das Menü. Deinstallieren kannst du ihn über das Unternehmensportal, wenn deine IT ihn dort als verfügbar anbietet – sonst hilft dir deine IT.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="hilfe" class="help" aria-labelledby="h-titel">
+    <div class="help-inner">
+      <img src="img/pose-sus.png" alt="" width="192" height="256">
+      <div>
+        <h2 id="h-titel">Fragen, Probleme, Ideen?</h2>
+        <p id="help-text">Wende dich an deine IT-Abteilung. Hilfreich ist ein Diagnose-Bericht: Einstellungen, „Info &amp; Diagnose“, „Diagnose-Bericht kopieren“ – und in die Mail einfügen.</p>
+        <ul class="contact" id="contact" hidden></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p><span id="foot-version">Sudo</span>, entwickelt von MeikoSoft</p>
+  <p class="legal" id="legal" hidden></p>
+</footer>
+</body>
+</html>

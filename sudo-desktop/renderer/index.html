@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo</title>
+<style>
+  @font-face {
+    font-family: "Pixelify Sans";
+    font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2");
+  }
+  :root {
+    --paper: #fbf3df;
+    --ink: #16171c;
+    --alert: #b3161c;
+    --orange: #ff9f43;
+    --f-pixel: "Pixelify Sans", "Courier New", monospace;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #sudo { position: fixed; left: 0; top: 0; cursor: grab; touch-action: none; image-rendering: pixelated; will-change: transform; }
+  #sudo.grab { cursor: grabbing; }
+  /* Ninja-Leiste (1.4.2): Schnellstart per mittlerer Maustaste */
+  #deck { position: fixed; left: 0; top: 0; padding: 8px 8px 7px; background: #12161f; border: 3px solid #25d3d0; box-shadow: 4px 4px 0 rgba(0,0,0,.55), inset 0 0 0 2px #0b0d12;
+    font: 700 12px/1.1 var(--f-pixel); color: #e3e8f0; transform-origin: 50% 100%; transition: opacity .12s, scale .12s; }
+  #deck[hidden] { display: none; }
+  #deck.pop { opacity: 0; scale: .7; }
+  #deck .dh { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 2px 6px; color: #25d3d0; letter-spacing: .04em; }
+  #deck .dh b { font-weight: 700; }
+  #deck .dx { all: unset; cursor: pointer; color: #8a94a6; padding: 0 3px; font: 700 13px var(--f-pixel); }
+  #deck .dx:hover { color: #ff6b70; }
+  #deck .row { display: grid; grid-auto-flow: column; gap: 5px; }
+  #deck button.it { all: unset; position: relative; box-sizing: border-box; width: 70px; height: 66px; display: grid; justify-items: center; align-content: center; gap: 4px; cursor: pointer;
+    background: #1a2030; border: 2px solid #2b3344; text-align: center; }
+  #deck button.it:hover, #deck button.it:focus-visible { border-color: #25d3d0; background: #1f2a3a; translate: 0 -2px; }
+  #deck button.it canvas { width: 27px; height: 27px; image-rendering: pixelated; }
+  #deck button.it span { font: 700 10px/1.1 var(--f-pixel); max-width: 66px; max-height: 2.2em; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; }
+  #deck button.it i { position: absolute; top: 2px; right: 3px; font: 700 9px var(--f-pixel); color: #ff9f43; font-style: normal; }
+  #deck .empty { padding: 4px 6px 6px; color: #8a94a6; font-size: 11px; max-width: 230px; }
+
+  #bubble {
+    position: fixed; left: 0; top: 0; pointer-events: none; max-width: 260px; padding: 7px 10px 8px;
+    background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,.55);
+    font: 700 15px/1.2 var(--f-pixel); white-space: pre-line; text-align: center;
+    font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0;
+  }
+  #bubble::after {
+    content: ""; position: absolute; bottom: -11px; left: var(--tail, 50%); width: 12px; height: 12px; background: var(--paper);
+    border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink);
+    transform: translateX(-50%) skewX(-28deg) rotate(45deg) scale(.8);
+  }
+  #bubble.alert { border-color: var(--alert); color: var(--alert); }
+  #bubble.alert::after { border-color: var(--alert); }
+  #gbubble { position: fixed; left: 0; top: 0; pointer-events: none; max-width: 240px; padding: 6px 9px 7px; background: #f4fbf8; color: var(--ink);
+    border: 3px solid #1f6f5a; box-shadow: 4px 4px 0 rgba(0,0,0,.5); font: 700 14px/1.2 var(--f-pixel); white-space: pre-line; text-align: center; }
+  #guest { position: fixed; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+  #gtag { position: fixed; left: 0; top: 0; pointer-events: none; padding: 1px 6px; background: rgba(11,13,18,.82); color: #9ef3b4; border: 1px solid #1f6f5a;
+    font: 700 11px var(--f-pixel); white-space: nowrap; border-radius: 3px; }
+  .keep { position: fixed; pointer-events: auto; cursor: pointer; }
+  .keep canvas { display: block; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.5)); }
+  .postit { width: 170px; min-height: 64px; padding: 9px 10px 8px; background: #fff27a; color: #2a2410; box-shadow: 3px 4px 0 rgba(0,0,0,.35);
+    font: 700 13px/1.25 var(--f-pixel); border-top: 10px solid #f5dd3c; }
+  .postit small { display: block; margin-top: 6px; font: 700 11px var(--f-pixel); opacity: .7; text-align: right; }
+  .keep:hover { filter: brightness(1.06); }
+  #bubble.link { pointer-events: auto; cursor: pointer; }
+  #bubble.link:hover { box-shadow: 4px 4px 0 rgba(0,0,0,.55), 0 0 0 3px rgba(37,211,208,.55); }
+  #bubble .more { display: block; margin-top: 4px; font: 700 11px var(--f-pixel); opacity: .7; }
+  /* 1.5: gut lesbare Schrift und größere Blase (Einstellungen → Allgemein → Sprechblase) */
+  body.bub-clear #bubble, body.bub-clear #gbubble, body.bub-clear .postit { font-family: "Segoe UI Variable Text", "Segoe UI", "Yu Gothic UI", "Meiryo UI", system-ui, sans-serif; font-weight: 600; line-height: 1.3; }
+  body.bub-clear #bubble .more { font-family: "Segoe UI", system-ui, sans-serif; font-weight: 600; }
+  body.bub-large #bubble { font-size: 19px; max-width: 330px; padding: 9px 13px 10px; }
+  body.bub-large #gbubble { font-size: 17px; max-width: 300px; }
+  body.bub-large #bubble .more { font-size: 13px; }
+  body.bub-clear #bubble { font-size: 15px; }
+  body.bub-clear.bub-large #bubble { font-size: 18px; }
+  #combo { position: fixed; left: 0; top: 0; pointer-events: none; font: 700 14px var(--f-pixel); color: var(--orange); text-shadow: 2px 2px 0 #000; white-space: nowrap; }
+  #hud { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); pointer-events: none; padding: 6px 14px 7px;
+    background: rgba(11,13,18,.85); border: 2px solid #25d3d0; color: #f4d03f; font: 700 16px var(--f-pixel); letter-spacing: .04em; white-space: nowrap; }
+  [hidden] { display: none !important; }
+</style>
+<link rel="stylesheet" href="jp-font.css">
+</head>
+<body data-noi18n>
+  <canvas id="fx"></canvas>
+  <canvas id="sudo"></canvas>
+  <canvas id="guest" hidden></canvas>
+  <div id="gtag" hidden></div>
+  <div id="gbubble" hidden></div>
+  <div id="bubble" hidden></div>
+  <div id="deck" hidden></div>
+  <div id="combo" hidden></div>
+  <div id="hud" hidden></div>
+  <script src="i18n.js"></script>
+  <script src="lang/en.js"></script>
+  <script src="lang/ja.js"></script>
+  <script src="sprite.js"></script>
+  <script src="sheet.js"></script>
+  <script src="lines.js"></script>
+  <script src="progress.js"></script>
+  <script src="sudo.js"></script>
+</body>
+</html>

@@ -35,7 +35,8 @@ Frische Datenbank und frisch gestarteter Nachbau nötig.
 python dev\test-media.py                          # gegen PHP (8091)
 $env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-media.py   # gegen Node
 ```
-Erwartet u. a.: `live2 … ('Never Gonna Give You Up', 'playing')`, `veto Africa: (200 …)`, `live3 … ('Africa', 'skipped')`.
+Erwartet u. a.: `live2 … ('Never Gonna Give You Up', 'playing')`, `veto Africa: (200 …)`, `live3 … ('Africa', 'skipped')`, am Ende `Durchgelaufen (PHP …)` bzw. `(Node …)`.
+Gegen Node überspringt der Test die Abrufe über `/api/poll` (Zeilen `poll media`, `poll events`, `ansage`), weil die Node-Zentrale über WebSocket liefert.
 
 ## End-to-End-Test Wissen (SharePoint, ab 1.9)
 Frische Datenbank und frisch gestarteter Graph-Nachbau nötig.

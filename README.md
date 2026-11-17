@@ -1,6 +1,6 @@
 <p align="center"><img src="sudo-website/img/icon.png" width="96" alt="Sudo"></p>
 
-# Sudo – der Desktop-Ninja für die IT
+# Sudo - der Desktop-Ninja für die IT
 
 Sudo ist ein kleiner Pixel-Ninja, der auf dem Windows-Desktop lebt. Er läuft über die Taskleiste, erinnert an Pausen und hilft bei Alltagsproblemen am PC. Über die **Sudo-Zentrale** erreicht die IT damit alle Mitarbeitenden: Meldungen, Störungen, Neustart-Aufforderungen, Quiz und Wissen aus dem Intranet kommen dort an, wo sie gesehen werden.
 

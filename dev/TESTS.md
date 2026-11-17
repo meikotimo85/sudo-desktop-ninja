@@ -68,3 +68,12 @@ Neu in 1.11: `SUDO_HISTORY_JS` (JS im Verlaufsfenster, zusammen mit `SUDO_OPEN_H
 Neu in 1.10: `SUDO_OPEN_MEET`, `SUDO_OPEN_PULSE`, `SUDO_OPEN_START` (Fenster öffnen, Wert = Verzögerung in ms), `SUDO_TIP=excel` (Tipp-Blase), `SUDO_CARE=lockhint` (Sperr-Erinnerung), `SUDO_FAKE_ONBOARD=1` (Checkliste mit erfundenen Prüfergebnissen), `SUDO_FAKE_SELFHELP=1` (Langsam-Analyse mit Beispielwerten).
 
 Übersetzungen prüfen: `node sudo-desktop/tools/i18n-extract.js en` (bzw. `ja`) listet fehlende Einträge.
+
+## Client unter Linux (Vorschau)
+Unter Linux oder WSL mit X-Server. Ohne Bildschirm geht es mit Xvfb und einem Fenstermanager (z. B. `apt install xvfb openbox xterm`):
+```bash
+cd sudo-desktop && npm install
+xvfb-run -a -s "-screen 0 1600x900x24" bash -c 'openbox & sleep 1; xterm -geometry 90x20+150+330 & sleep 1; SUDO_TEST=1 SUDO_TEST_MS=10000 SUDO_SHOT=$PWD/shot.png npx electron . --no-sandbox --user-data-dir=/tmp/sudo-test'
+```
+Erwartet: `[renderer] test: plattformen=1` (Sudo kennt die Oberkante des xterm-Fensters). Fensterliste direkt prüfen: `node -e "console.log(require('./x11.js').listWindows('0'))"` – das xterm erscheint als `windowsterminal.exe`.
+Pakete: `npm run dist:linux`, danach `sudo apt install ./dist/Sudo-<Version>-amd64.deb` und `/opt/Sudo/sudo-desktop` starten.

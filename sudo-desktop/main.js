@@ -8,7 +8,8 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
-const win32 = require('./win32');
+// Fenster-Schnittstelle: Windows-API oder unter Linux libX11 (1.12) – beide mit gleicher Schnittstelle
+const win32 = require(process.platform === 'linux' ? './x11' : './win32');
 const { createWork, normalize: normalizeWork, DEFAULTS: WORK_DEFAULTS } = require('./work');
 const { createWatch, WATCH_DEFAULTS } = require('./watch');
 const { createReminders } = require('./reminders');
@@ -32,6 +33,10 @@ const T = s => I18N.t(s);
 const PORT = 4711;
 const POLL_MS = 80, POLL_ECO_MS = 220;
 const TEST = process.env.SUDO_TEST === '1';
+
+// Linux (1.12): Unter Wayland darf eine App ihr Fenster weder frei platzieren noch dauerhaft nach vorn holen.
+// Deshalb läuft Sudo dort über XWayland. Mit SUDO_WAYLAND=1 lässt sich das zum Ausprobieren abschalten.
+if (process.platform === 'linux' && process.env.SUDO_WAYLAND !== '1') app.commandLine.appendSwitch('ozone-platform', 'x11');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 
@@ -324,7 +329,10 @@ function subtract(segs, a, b) {
 }
 function toDip(r) {
   const rect = { x: r.left, y: r.top, width: r.right - r.left, height: r.bottom - r.top };
-  const d = typeof screen.screenToDipRect === 'function' ? screen.screenToDipRect(null, rect) : rect;
+  // screenToDipRect gibt es nur unter Windows; unter X11 sind die Koordinaten physisch → durch den Zoomfaktor teilen
+  const f = display.scaleFactor || 1;
+  const d = typeof screen.screenToDipRect === 'function' ? screen.screenToDipRect(null, rect)
+    : { x: rect.x / f, y: rect.y / f, width: rect.width / f, height: rect.height / f };
   const b = display.bounds;
   return { l: d.x - b.x, t: d.y - b.y, r: d.x + d.width - b.x, btm: d.y + d.height - b.y };
 }
@@ -1070,7 +1078,22 @@ function openSettings(tab) {
 }
 function setAutostart(on) {
   settings.autostart = !!on;
+  if (process.platform === 'linux') return linuxAutostart(!!on);
   try { app.setLoginItemSettings({ openAtLogin: !!on, path: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath }); } catch (e) { writeLog('Autostart: ' + e.message); }
+}
+// Linux (1.12): Electron kennt dort keinen Autostart → .desktop-Datei nach XDG unter ~/.config/autostart
+function linuxAutostart(on) {
+  const dir = path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'autostart');
+  const file = path.join(dir, 'sudo-desktop.desktop');
+  try {
+    if (!on) { fs.rmSync(file, { force: true }); return; }
+    const exe = process.env.APPIMAGE || process.execPath;      // AppImage: Pfad der .AppImage-Datei, nicht des entpackten Ordners
+    const q = s => '"' + String(s).replace(/(["`$\\])/g, '\\$1') + '"';
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, ['[Desktop Entry]', 'Type=Application', 'Name=Sudo', 'Comment=Sudo – Desktop-Ninja',
+      'Exec=' + q(exe) + (exe === process.execPath && !app.isPackaged ? ' ' + q(app.getAppPath()) : ''),
+      'Icon=sudo-desktop', 'Terminal=false', 'X-GNOME-Autostart-enabled=true', ''].join('\n'));
+  } catch (e) { writeLog('Autostart: ' + e.message); }
 }
 const bool = v => !!v;
 const SETTERS = {
@@ -1201,6 +1224,8 @@ function aboutInfo() {
 function installKind() {
   if (process.env.PORTABLE_EXECUTABLE_FILE) return 'Portable EXE';
   if (!app.isPackaged) return 'Entwicklerstart (START.bat)';
+  if (process.env.APPIMAGE) return 'AppImage';                                  // Linux (1.12)
+  if (process.platform === 'linux') return 'Linux-Paket (.deb)';
   if (/program files/i.test(process.execPath)) return 'Installiert (alle Benutzer / MSI)';
   return 'Installiert (Setup)';
 }
@@ -1212,7 +1237,7 @@ async function diagnostics() {
   add('Version', i.version); add('Installationsart', i.installed); add('Electron / Chrome / Node', `${i.electron} / ${i.chrome} / ${i.node}`);
   { const v = diag.view(), n = v.now || {}, a = v.avg; add('Sudo-Ressourcen', `jetzt CPU ${n.cpu ?? '?'} % / RAM ${n.ram ?? '?'} MB` + (a ? ` · Ø 10 min CPU ${a.cpu} % / RAM ${a.ram} MB` : '')); add('Selbstheilung (24 h)', `${v.crashes}× · Fehler: ${v.errors.length ? v.errors[0].msg : 'keine'}`); }
   add('Betriebssystem', i.os); add('Arbeitsspeicher', `${Math.round(os.freemem() / 1e9 * 10) / 10} von ${Math.round(os.totalmem() / 1e9)} GB frei`);
-  add('Windows-API (Fenster)', win32.available() ? 'ok' : 'nicht verfügbar');
+  add(process.platform === 'linux' ? 'X11 (Fenster)' : 'Windows-API (Fenster)', win32.available() ? 'ok' : 'nicht verfügbar');
   add('Tastatur-Hook', hook ? 'läuft' : 'nicht gestartet');
   add('Tastenkürzel', `Werkzeugkasten ${shortcutOk.tools ? 'ok' : 'belegt'}, Erinnerung ${shortcutOk.quick ? 'ok' : 'belegt'}`);
   add('Webhook-Port', server && server.listening ? `${PORT} offen` : `${PORT} nicht offen`);
@@ -1560,7 +1585,8 @@ ipcMain.handle('tour-get', () => ({ autostart: settings.autostart, size: setting
 /* ---------- Auto-Update (nur bei installierter Version) ---------- */
 const update = { state: 'idle', version: null, error: null, progress: 0 };
 let updater = null;
-function canAutoUpdate() { return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !/program files/i.test(process.execPath); }
+// Linux (1.12): nur das AppImage aktualisiert sich selbst (latest-linux.yml auf dem Update-Server), das .deb macht die Paketverwaltung
+function canAutoUpdate() { return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !/program files/i.test(process.execPath) && (process.platform !== 'linux' || !!process.env.APPIMAGE); }
 function setUpdate(patch) {
   Object.assign(update, patch);
   buildTrayMenu();
@@ -1587,7 +1613,8 @@ function initUpdater() {
   setInterval(() => { if (settings.autoUpdate) checkUpdate(false); }, 6 * 3600 * 1000);
 }
 async function checkUpdate(manual) {
-  if (!canAutoUpdate()) return { ok: false, msg: installKind() === 'Portable EXE' ? 'Die portable EXE aktualisiert sich nicht selbst. Lade einfach die neue EXE herunter.' : 'Diese Installation wird zentral verteilt (MSI/Intune) oder ist ein Entwicklerstart.' };
+  if (!canAutoUpdate()) return { ok: false, msg: installKind() === 'Portable EXE' ? 'Die portable EXE aktualisiert sich nicht selbst. Lade einfach die neue EXE herunter.'
+    : installKind() === 'Linux-Paket (.deb)' ? 'Das Linux-Paket wird über die Paketverwaltung aktualisiert.' : 'Diese Installation wird zentral verteilt (MSI/Intune) oder ist ein Entwicklerstart.' };
   if (!updater) return { ok: false, msg: 'Updater nicht verfügbar.' };
   try { await updater.checkForUpdates(); return { ok: true, msg: manual ? 'Suche nach Updates …' : '' }; }
   catch (e) { return { ok: false, msg: 'Update-Prüfung fehlgeschlagen: ' + e.message }; }
@@ -1882,7 +1909,7 @@ app.whenReady().then(() => {
   registerShortcuts();
   initUpdater();
   // Bei zentraler Installation (MSI/Intune) beim allerersten Start automatisch mitstarten
-  if (!settings.tourDone && /program files/i.test(process.execPath) && !settings.autostart) { setAutostart(true); writeSettings(); }
+  if (!settings.tourDone && (/program files/i.test(process.execPath) || /^\/(opt|usr)\//.test(process.execPath)) && !settings.autostart) { setAutostart(true); writeSettings(); }
   buildTrayMenu();
   workTimer = setInterval(() => { try { work.tick(); } catch (e) { console.error('[work]', e.message); } }, 1000);
   setInterval(() => work.save(), 60000);

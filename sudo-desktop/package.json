@@ -6,6 +6,8 @@
   "main": "main.js",
   "author": "MeikoSoft",
   "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/meikotimo85/sudo-desktop-ninja",
+  "desktopName": "sudo-desktop.desktop",
   "private": true,
   "scripts": {
     "start": "electron .",
@@ -14,7 +16,8 @@
     "dist:portable": "electron-builder --win portable --x64 --publish never",
     "dist:setup": "electron-builder --win nsis --x64 --publish never",
     "dist:msi": "electron-builder --win msi --x64 --publish never",
-    "dist:all": "electron-builder --win nsis msi portable --x64 --publish never"
+    "dist:all": "electron-builder --win nsis msi portable --x64 --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --x64 --publish never"
   },
   "dependencies": {
     "@fontsource/dotgothic16": "^5.3.1",
@@ -73,6 +76,7 @@
       "work.js",
       "preload-work.js",
       "win32.js",
+      "x11.js",
       "renderer/**/*",
       "assets/**/*",
       "node_modules/**/*",
@@ -90,6 +94,33 @@
     },
     "portable": {
       "artifactName": "Sudo-${version}-portable.exe"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "executableName": "sudo-desktop",
+      "synopsis": "Sudo – Desktop-Ninja",
+      "maintainer": "MeikoSoft",
+      "artifactName": "Sudo-${version}-${arch}.${ext}",
+      "syncDesktopName": true
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0 | libgtk-3-0t64",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0 | libatspi2.0-0t64",
+        "libuuid1",
+        "libsecret-1-0",
+        "libx11-6"
+      ]
     },
     "directories": {
       "output": "dist"

@@ -10,9 +10,11 @@ const ZENTRALE_DEFAULTS = { url: '', deviceId: '', name: '', tokenEnc: '', token
 const normUrl = u => { try { const x = new URL(String(u).trim()); if (!/^https?:$/.test(x.protocol)) return ''; return x.origin + x.pathname.replace(/\/+$/, ''); } catch { return ''; } };
 
 // Vorgaben für zentrale Verteilung: Datei C:\ProgramData\Sudo\zentrale.json oder Richtlinie HKLM\SOFTWARE\Policies\MeikoSoft\Sudo
+// Linux (1.12): /etc/sudo-desktop/zentrale.json (gleicher Aufbau, z. B. über NinjaOne, Ansible oder das .deb verteilt)
 function readPreset(log) {
   return new Promise(resolve => {
-    const file = path.join(process.env.ProgramData || 'C:\\ProgramData', 'Sudo', 'zentrale.json');
+    const file = process.platform === 'linux' ? '/etc/sudo-desktop/zentrale.json'
+      : path.join(process.env.ProgramData || 'C:\\ProgramData', 'Sudo', 'zentrale.json');
     // BOM entfernen: Windows PowerShell 5.1 schreibt mit „Set-Content -Encoding UTF8“ eine voran, daran scheitert JSON.parse
     try {
       const j = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));

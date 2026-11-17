@@ -1,3 +1,9 @@
+Unveröffentlicht – Linux-Version (Vorschau)
+  • Sudo läuft unter Linux: AppImage (aktualisiert sich selbst) und .deb für Ubuntu/Debian/Mint, bauen mit „npm run dist:linux“
+  • Fensterkanten, Vollbild-Erkennung, Programm-Kommentare und Meeting-Erkennung über X11 (neues Modul x11.js); unter Wayland läuft Sudo über XWayland
+  • Ninja-Leiste mit Linux-Programmen (Terminal, Root-Terminal über pkexec, Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt)
+  • Autostart über ~/.config/autostart, Zentrale-Vorgabe aus /etc/sudo-desktop/zentrale.json, Neustart-Kampagnen über shutdown -r +2
+
 1.11.0 – Verlauf mit Suche, Sudo im Detail (Zentrale bleibt 1.10.0)
   • Verlauf „Was hat Sudo gesagt?“ durchsuchen: Text, Ticket-Nummer und Gerätekennung, dazu Zeitraum (Heute, 7 oder 30 Tage, Von … bis …) und Quelle; Ticket und Gerät stehen als Marke unter der Meldung
   • Aufbewahrung einstellbar: Aus, 7, 30 (neuer Standard, bisher 7), 90 Tage oder 1 Jahr, höchstens 2000 Einträge (bisher 50); Abgelaufenes wird aus der Datei gelöscht, kürzer stellen löscht sofort

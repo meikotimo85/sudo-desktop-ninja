@@ -96,7 +96,8 @@ function createOps({ getState, setState, zentrale, announce, log, isBusy, openNo
   function restartNow(id) {
     const c = cfg.restart.find(x => String(x.id) === String(id));
     const s = st();
-    if (process.platform !== 'win32' && !test) return Promise.resolve({ ok: false, msg: 'Nur unter Windows.' });
+    const linux = process.platform === 'linux';
+    if (process.platform !== 'win32' && !linux && !test) return Promise.resolve({ ok: false, msg: 'Nur unter Windows.' });
     return new Promise(resolve => {
       const done = err => {
         if (err) return resolve({ ok: false, msg: 'Neustart konnte nicht gestartet werden.' });
@@ -107,6 +108,8 @@ function createOps({ getState, setState, zentrale, announce, log, isBusy, openNo
         resolve({ ok: true });
       };
       if (test) return done(null);
+      // Linux (1.12): systemd plant den Neustart über logind – für die angemeldete Sitzung ohne Root-Rechte erlaubt
+      if (linux) return execFile('shutdown', ['-r', '+2', 'Sudo: Neustart in 2 Minuten. Bitte jetzt alles speichern.'], { timeout: 10000 }, done);
       execFile('shutdown.exe', ['/r', '/t', '120', '/c', 'Sudo: Neustart in 2 Minuten. Bitte jetzt alles speichern.'], { windowsHide: true }, done);
     });
   }
@@ -114,7 +117,9 @@ function createOps({ getState, setState, zentrale, announce, log, isBusy, openNo
     restartingUntil = 0;
     return new Promise(resolve => {
       const after = () => { const s = st(); for (const c of cfg.restart) report(c, s, true); save(s); changed(); log('Neustart abgebrochen'); resolve({ ok: true }); };
-      if (test || process.platform !== 'win32') return after();
+      if (test) return after();
+      if (process.platform === 'linux') return execFile('shutdown', ['-c'], { timeout: 10000 }, after);
+      if (process.platform !== 'win32') return after();
       execFile('shutdown.exe', ['/a'], { windowsHide: true }, after);
     });
   }

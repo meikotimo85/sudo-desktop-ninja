@@ -42,6 +42,23 @@ Bei Installation über MSI schaltet Sudo beim ersten Start jedes Benutzers „Mi
 
 **Microsoft Defender / ASR:** Die Regel „Ausführbare Dateien blockieren, sofern sie nicht die Kriterien für Häufigkeit, Alter oder Vertrauenswürdigkeit erfüllen“ blockiert neue, unsignierte Programme – also auch jede neue Sudo-Version. Abhilfe: in der ASR-Richtlinie bei genau dieser Regel unter *ASR Only Per Rule Exclusions* `C:\Program Files\Sudo\Sudo.exe` eintragen (der Ordner ist nur für Administratoren beschreibbar). Dauerhaft besser: Sudo signieren (z. B. Azure Artifact Signing).
 
+### Linux (Vorschau)
+
+Bauen auf einem Linux-Rechner (Node.js 22): `npm install`, dann `npm run dist:linux`. In `dist/` liegen danach:
+
+| Datei | Wofür |
+|---|---|
+| `Sudo-<Version>-x86_64.AppImage` | ohne Installation: ausführbar machen (`chmod +x`) und starten; **aktualisiert sich selbst** – dazu `latest-linux.yml` und die AppImage in den Update-Ordner laden |
+| `Sudo-<Version>-amd64.deb` | für Ubuntu, Debian, Mint: `sudo apt install ./Sudo-<Version>-amd64.deb`, landet in `/opt/Sudo`; Updates über die Paketverwaltung bzw. neu verteilen |
+
+- **Zentrale-Vorgabe:** `/etc/sudo-desktop/zentrale.json` mit demselben Inhalt wie unter Windows (`{"url": "https://…", "code": "…"}`), z. B. über NinjaOne, Ansible oder ein eigenes Paket verteilen. UTF-8 ohne BOM.
+- **Autostart:** „Mit dem System starten“ legt `~/.config/autostart/sudo-desktop.desktop` an. Beim .deb schaltet Sudo das beim ersten Start automatisch ein.
+- **Fensterkanten:** Sudo liest die Fenster über X11. Unter Wayland (Standard bei aktuellem Ubuntu und Fedora) startet Sudo deshalb automatisch über XWayland. Fenster von reinen Wayland-Programmen kennt Sudo dort nicht und läuft dann nur auf der Taskleiste. Mit `SUDO_WAYLAND=1` startet Sudo zum Ausprobieren als echtes Wayland-Programm.
+- **Ninja-Leiste:** Terminal, Terminal (Root, über `pkexec`), Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt – jeweils das erste vorhandene Programm (GNOME, KDE, Xfce, Cinnamon, MATE).
+- **Neustart-Kampagnen** der Zentrale nutzen `shutdown -r +2` (über systemd/logind, keine Root-Rechte nötig).
+- **Noch nur unter Windows:** Gerätezustand (Mein PC), Selbsthilfe-Reparaturen (außer Netzwerk-Check und „Warum ist mein PC langsam?“), Start-Checkliste mit Windows-Prüfungen, Anmeldename (UPN) für Ziele `user:…`. Diese Bereiche melden „Nur unter Windows.“
+- Für die durchsichtige Ebene braucht der Desktop einen Compositor (bei GNOME, KDE, Cinnamon Standard; bei Xfce in den Fenstermanager-Optimierungen einschalten).
+
 ## Bedienung
 
 - **Tray-Symbol** (Ninja-Kopf unten rechts), Rechtsklick: Sudo rufen · Erinnerung/Notiz · Frag Sudo · IT-Lage · Werkzeugkasten · Statistik · Arbeitstag & Pausen · Garderobe · Spielen · Wohnort · **Einstellungen** · Über Sudo · Sudo neu laden · Beenden. Linksklick ruft Sudo zur Maus.

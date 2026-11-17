@@ -11,6 +11,7 @@ if (isWin) {
     const user32 = koffi.load('user32.dll');
     const dwm = koffi.load('dwmapi.dll');
     const kernel32 = koffi.load('kernel32.dll');
+    const shell32 = koffi.load('shell32.dll');
     const HWND = koffi.pointer('HWND', koffi.opaque());
     const HANDLE = koffi.pointer('HANDLE', koffi.opaque());
 
@@ -33,7 +34,9 @@ if (isWin) {
       CloseHandle: kernel32.func('bool __stdcall CloseHandle(HANDLE h)'),
       GetSystemMetrics: user32.func('int __stdcall GetSystemMetrics(int index)'),
       // Gleiche Funktion, aber mit dem Fenster als Zahl (eigenes Overlay, Adresse aus handleToId)
-      GetWindowLongById: user32.func('long __stdcall GetWindowLongW(intptr_t hWnd, int index)')
+      GetWindowLongById: user32.func('long __stdcall GetWindowLongW(intptr_t hWnd, int index)'),
+      // 1.13: Explorer über neue Dateiendung informieren (Symbol sofort sichtbar)
+      SHChangeNotify: shell32.func('void __stdcall SHChangeNotify(long wEventId, uint32_t uFlags, void *dwItem1, void *dwItem2)')
     };
   } catch (err) {
     console.error('[win32] koffi konnte nicht geladen werden:', err.message);
@@ -179,4 +182,10 @@ function exStyle(id) {
   try { return api.GetWindowLongById(BigInt(id), GWL_EXSTYLE) >>> 0; } catch { return null; }
 }
 
-module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle };
+/** Explorer mitteilen, dass sich Dateizuordnungen geändert haben (SHCNE_ASSOCCHANGED) */
+function notifyAssocChanged() {
+  if (!api) return;
+  try { api.SHChangeNotify(0x08000000, 0, null, null); } catch { /* nicht schlimm, dann nach dem nächsten Anmelden */ }
+}
+
+module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged };

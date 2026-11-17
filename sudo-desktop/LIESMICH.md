@@ -1,4 +1,4 @@
-# Sudo – Desktop-Ninja 1.12.1
+# Sudo – Desktop-Ninja 1.13.0
 
 Sudo lebt auf deinem Windows-Desktop: Er läuft auf der Taskleiste, springt auf die Oberkanten deiner echten Fenster, tippt mit, wenn du tippst, erinnert dich an Pausen und meldet sich, wenn in der IT etwas brennt.
 
@@ -183,11 +183,12 @@ Plugins sind kleine Zusatzwerkzeuge als **eine einzelne HTML-Datei** – z. B. e
 
 - **Öffnen:** Tray-Menü → **Plugins** (Puzzle-Symbol, erscheint, sobald es mindestens ein Plugin gibt) oder Einstellungen → Reiter **Plugins**.
 - **Selbst hinzufügen:** Einstellungen → Plugins → **Datei wählen …**. Gleiche Kennung ersetzt die alte Fassung. Abgelegt unter `%APPDATA%\Sudo\plugins\eigene\`.
+- **Per Doppelklick (ab 1.13):** Eine Datei mit der Endung **`.sudoplugin`** (eigenes Puzzle-Symbol im Explorer) öffnet Sudo und fragt „Plugin … hinzufügen?“ – mit „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“. Die Endung trägt Sudo beim Start selbst für den angemeldeten Benutzer ein (`HKCU\Software\Classes`, ohne Adminrechte, gleich bei Setup, MSI und portabler EXE). Eine `.sudoplugin`-Datei ist eine normale Plugin-HTML-Datei mit anderer Endung – zum Verschicken einfach umbenennen.
 - **Von der IT:** In der Sudo-Zentrale unter **Plugins** hochladen und zuweisen (alle, Gruppe, Person). Die Sudos holen sie von selbst, prüfen die Prüfsumme und löschen sie wieder, wenn die IT sie entfernt. Die IT kann eigene Plugins der Mitarbeitenden verbieten.
 
 **Abgeschottet:** Ein Plugin läuft in einem eigenen Fenster ohne Node und ohne Brücke zu Sudo. Alle Netzwerkzugriffe (http, https, WebSocket, WebRTC) und fremde Dateien werden gesperrt und im Ereignisprotokoll vermerkt; jedes Plugin hat seinen eigenen Speicher (`localStorage`). Erlaubt sind nur: Text in die Zwischenablage schreiben, Rückfragen (`confirm`, `alert`) und Dateien über den Speichern-Dialog sichern. Pop-ups und Navigation weg von der Datei werden blockiert. Trotzdem gilt: nur Plugins aus vertrauenswürdiger Quelle hinzufügen.
 
-**Selbst bauen:** Alles (CSS, JavaScript, Bilder als `data:`) in eine HTML-Datei, höchstens 2 MB, ohne Abruf aus dem Internet. `<title>` ist der Name, freiwillig dazu:
+**Selbst bauen:** Alles (CSS, JavaScript, Bilder als `data:`) in eine HTML-Datei, höchstens 2 MB, ohne Abruf aus dem Internet. Zum Weitergeben in `.sudoplugin` umbenennen. Firmen- oder kundenspezifische Plugins gehören nicht in dieses Repo, sondern in ein eigenes, privates. `<title>` ist der Name, freiwillig dazu:
 
 ```html
 <meta name="sudo-plugin-id" content="subnetz-rechner">

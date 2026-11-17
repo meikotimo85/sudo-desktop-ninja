@@ -1193,7 +1193,7 @@ ipcMain.handle('center-action', async (_e, action, arg) => {
     // 1.12: Plugins
     case 'pluginAdd': {
       if (!plugins) return { ok: false };
-      const r = await dialog.showOpenDialog(settingsWin || undefined, { title: T('Plugin hinzufügen'), properties: ['openFile'], filters: [{ name: T('Plugin (HTML-Datei)'), extensions: ['html', 'htm'] }] });
+      const r = await dialog.showOpenDialog(settingsWin || undefined, { title: T('Plugin hinzufügen'), properties: ['openFile'], filters: [{ name: T('Plugin (HTML- oder .sudoplugin-Datei)'), extensions: ['sudoplugin', 'html', 'htm'] }] });
       if (r.canceled || !r.filePaths[0]) return { ok: false };
       const a = plugins.addFile(r.filePaths[0]);
       pluginsChanged();
@@ -1810,7 +1810,33 @@ ipcMain.on('stats', (_e, s) => {
   if (tray) tray.setToolTip(T(trayTip));
 });
 
-app.on('second-instance', () => summon());
+// 1.13: Doppelklick auf eine .sudoplugin-Datei startet Sudo mit dem Pfad – läuft Sudo schon, kommt er hier an
+app.on('second-instance', (_e, argv) => { const f = pluginArg(argv); if (f) offerPlugin(f); else summon(); });
+function pluginArg(argv) { return (argv || []).slice(1).find(a => /\.sudoplugin$/i.test(String(a)) && fs.existsSync(a)) || null; }
+// Rückfrage vor dem Hinzufügen – eine Datei aus einer Mail soll nicht unbemerkt hineinrutschen
+async function offerPlugin(file) {
+  if (!plugins) { setTimeout(() => offerPlugin(file), 1000); return; }
+  const c = plugins.inspect(file);
+  const icon = path.join(__dirname, 'assets', 'icon.png');
+  if (!c.ok) {
+    if (!(TEST && process.env.SUDO_DIALOG_ANSWER)) await dialog.showMessageBox({ type: 'warning', title: 'Sudo', icon, message: T('Plugin kann nicht hinzugefügt werden'), detail: T(c.msg), buttons: ['OK'] });
+    writeLog('Plugin-Datei abgelehnt: ' + c.msg); console.log('[plugin-offer]', JSON.stringify({ ok: false, msg: c.msg }));
+    return;
+  }
+  const ver = c.info.version ? ' ' + T('Version {x}').replace('{x}', c.info.version) : '';
+  const detail = [T('Datei: {x}').replace('{x}', path.basename(file)) + (c.had ? ' · ' + T('ersetzt Version {x}').replace('{x}', c.oldVersion || '?') : ''), '',
+    T('Plugins laufen abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder deine Dateien. Füge nur Plugins aus vertrauenswürdiger Quelle hinzu.')].join('\n');
+  const answer = TEST && process.env.SUDO_DIALOG_ANSWER ? Number(process.env.SUDO_DIALOG_ANSWER)
+    : (await dialog.showMessageBox({ type: 'question', title: T('Sudo – Plugin hinzufügen'), icon, message: T('Plugin „{x}“ hinzufügen?').replace('{x}', c.info.name) + ver, detail,
+      buttons: [T('Hinzufügen und öffnen'), T('Nur hinzufügen'), T('Abbrechen')], defaultId: 0, cancelId: 2, noLink: true })).response;
+  console.log('[plugin-offer]', JSON.stringify({ ok: true, name: c.info.name, answer }));
+  if (answer === 2) return;
+  const r = plugins.addFile(file);
+  pluginsChanged();
+  if (r.ok && answer === 0) plugins.open('eigene', r.id);
+  else if (r.ok) send('event', { type: 'success', text: T(r.msg) });
+}
+
 app.whenReady().then(() => {
   // Nur Test: breiten virtuellen Bildschirm in zwei Monitore aufteilen (zweiter versetzt), um das Ziehen zu prüfen
   if (TEST && process.env.SUDO_FAKE_DISPLAYS) {
@@ -1899,6 +1925,15 @@ app.whenReady().then(() => {
     isBusy: () => inMeeting || hiddenForFullscreen, openNotice: () => openHinweise(), rebootPending, test: TEST,
     onChange: () => { if (hinweiseWin && !hinweiseWin.isDestroyed()) hinweiseWin.webContents.send('ops-changed'); if (tray) buildTrayMenu(); } });
   plugins = createPlugins({ dir: path.join(app.getPath('userData'), 'plugins'), log: writeLog, electron: require('electron'), icon: path.join(__dirname, 'assets', 'icon.png'), devTools: TEST });
+  // 1.13: Endung .sudoplugin mit eigenem Symbol für diesen Benutzer eintragen (nur gebaute App; im Test unter .sudoplugintest)
+  if (app.isPackaged || (TEST && process.env.SUDO_ASSOC_TEST)) {
+    const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    const test = !app.isPackaged;
+    plugins.registerFileType({ ext: test ? '.sudoplugintest' : '.sudoplugin', progId: test ? 'Sudo.PluginTest' : 'Sudo.Plugin', typeName: T('Sudo-Plugin'),
+      command: test ? `"${exe}" "${app.getAppPath()}" "%1"` : `"${exe}" "%1"`, iconSrc: path.join(__dirname, 'assets', 'plugin-file.ico'), iconDir: app.getPath('userData'),
+      notify: () => win32.notifyAssocChanged() }).then(r => { if (TEST) console.log('[assoc]', JSON.stringify(r)); });
+  }
+  { const f = pluginArg(process.argv); if (f) setTimeout(() => offerPlugin(f), 1500); }
   zentraleApi = createZentrale({ getSettings: () => settings, setSettings: z => { settings.zentrale = z; saveSettings(); }, onOps: o => ops.update(o),
     onPlugins: p => { plugins.setUserAllowed(p.user !== false); plugins.syncZentrale(p.items, id => zentraleApi.pluginGet(id)).then(pluginsChanged); pluginsChanged(); }, onMedia: () => { if (tray) buildTrayMenu(); }, onKb: () => { if (tray) buildTrayMenu(); },
     onDex: () => { if (checkin) checkin.configChanged(); if (tray) buildTrayMenu(); if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-zentrale', zentraleApi.status()); },

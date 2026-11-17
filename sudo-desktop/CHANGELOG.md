@@ -1,3 +1,9 @@
+1.13.0 – Plugins per Doppelklick: Endung .sudoplugin (Zentrale 1.13.0)
+  • Dateien mit der Endung .sudoplugin haben im Explorer ein eigenes Pixel-Symbol (Blatt mit violettem Puzzleteil). Ein Doppelklick öffnet Sudo und fragt, ob das Plugin hinzugefügt werden soll – „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“; läuft Sudo schon, kommt die Frage dort
+  • Sudo trägt die Endung beim Start für den angemeldeten Benutzer ein (ohne Adminrechte, für Setup, MSI und portable EXE) und nur dann neu, wenn sich etwas geändert hat
+  • Einstellungen → Plugins und die Verwaltung der Zentrale nehmen .sudoplugin- und HTML-Dateien an
+  • Hat die IT eigene Plugins verboten oder ist die Datei kein Plugin, sagt Sudo das statt still nichts zu tun
+
 1.12.1 – Plugins im Tray-Menü sichtbarer (Zentrale bleibt 1.12.0)
   • Repo als Vorlage: Beispiele und Vorgaben nutzen sudo.example.com und updates.example.com. Die echte Update-Adresse steht in update-adresse.txt neben BAUEN.bat (nicht im Repo); BAUEN.bat übergibt sie beim Bauen. zentrale-vorgabe.ps1 bricht mit Hinweis ab, wenn keine Adresse eingetragen ist
   • Das Untermenü „Plugins“ im Tray hat ein eigenes Puzzle-Symbol statt des Werkzeugkasten-Symbols. Es erscheint, sobald die Zentrale Plugins vorgibt oder du selbst eins hinzufügst, und listet alle mit „Plugins verwalten …“ am Ende

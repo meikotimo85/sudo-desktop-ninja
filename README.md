@@ -4,7 +4,7 @@
 
 Sudo ist ein kleiner Pixel-Ninja, der auf dem Windows-Desktop lebt. Er läuft über die Taskleiste, erinnert an Pausen und hilft bei Alltagsproblemen am PC. Über die **Sudo-Zentrale** erreicht die IT damit alle Mitarbeitenden: Meldungen, Störungen, Neustart-Aufforderungen, Quiz und Wissen aus dem Intranet kommen dort an, wo sie gesehen werden.
 
-Stand: Client 1.12.1, Zentrale 1.12.0.
+Stand: Client 1.13.0, Zentrale 1.13.0.
 
 ## Was Sudo kann
 

@@ -1,4 +1,4 @@
-# Sudo-Zentrale 1.12.0 – PHP-Version für Webspace
+# Sudo-Zentrale 1.13.0 – PHP-Version für Webspace
 
 Die Sudo-Zentrale für ganz normales Webhosting, **ohne VPS, ohne Docker, ohne Node.js**. Sie kann dasselbe wie die Node-Version und hat dieselbe Verwaltung:
 
@@ -95,7 +95,7 @@ Einrichtung:
 
 **Regeln (ab 1.7):** Unter **Regeln** ordnet die Zentrale Meldungen der Schnittstelle selbst ein. So wird z. B. aus dem Ticket „Datensicherung Failed Muster GmbH“ ein Alarm „Backup fehlgeschlagen – Muster GmbH“ mit Klick zum Ticket. Drei Regeln sind dabei (Backup, Server nicht erreichbar, Zertifikat). Mit dem Testfeld prüfst du jeden Titel, ohne etwas zu senden. Einzelheiten stehen in API-ANLEITUNG.md, Abschnitt 3a.
 
-**Plugins (ab 1.12):** Unter **Plugins** lädst du kleine Werkzeuge als einzelne HTML-Datei hoch (höchstens 2 MB) und weist sie allen, einer Gruppe oder einer Person zu. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Gleiche Kennung ersetzt die alte Fassung, „pausiert“ blendet ein Plugin aus, „Entfernen“ löscht es auch auf den PCs. Mit dem Schalter „Eigene Plugins der Mitarbeitenden“ legst du fest, ob jeder zusätzlich eigene hinzufügen darf. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
+**Plugins (ab 1.12):** Unter **Plugins** lädst du kleine Werkzeuge als einzelne `.sudoplugin`- oder HTML-Datei hoch (höchstens 2 MB) und weist sie allen, einer Gruppe oder einer Person zu. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Gleiche Kennung ersetzt die alte Fassung, „pausiert“ blendet ein Plugin aus, „Entfernen“ löscht es auch auf den PCs. Mit dem Schalter „Eigene Plugins der Mitarbeitenden“ legst du fest, ob jeder zusätzlich eigene hinzufügen darf. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
 
 **Mitarbeiter-Erlebnis (ab 1.10):** Im Bereich **Mitarbeiter-Erlebnis** stellst du kurze **Stimmungsfragen** (1–5 Sterne, an alle oder eine Gruppe, mit Laufzeit) und schaltest optional eine **Monatsfrage** zur Zufriedenheit ein. Antworten speichert die Zentrale ohne Gerät – nur Sterne, Ampel des Gerätezustands und Tag; ausgewertet wird erst ab 5 Antworten (einstellbar 3–20), dann auch getrennt nach Gerätezustand. Nach einer beendeten Störung fragt Sudo die Betroffenen **„Läuft es wieder?“** – wer „Geht noch nicht“ antwortet, steht mit Namen in der Liste und im Protokoll. Die **Start-Checkliste** (mitgeliefert: MFA, OneDrive, Ordnersicherung, Teams, Signatur, Drucker, Gerätezustand, Quiz – eigene Punkte möglich) ist zunächst aus; eingeschaltet zeigen neue Sudos sie in den ersten 30 Tagen, du siehst den Stand je Gerät und kannst sie einem Gerät „erneut zeigen“. Außerdem: **eigene Tipps** je Programm, die Sudo im passenden Moment zeigt. Die neuen Tabellen legt die Zentrale beim ersten Aufruf selbst an.
 

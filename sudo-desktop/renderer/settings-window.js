@@ -331,7 +331,7 @@
         section('Plugins',
           ...(rows.length ? rows : [el('p', { class: 'note', text: 'Noch keine Plugins.' })]),
           pl.allowed
-            ? el('div', { class: 'row' }, el('div', { class: 't' }, el('b', { text: 'Plugin hinzufügen' }), el('small', { text: 'Eine HTML-Datei, z. B. ein Werkzeug deiner Firma. Gleicher Name ersetzt die alte Fassung.' }), msg),
+            ? el('div', { class: 'row' }, el('div', { class: 't' }, el('b', { text: 'Plugin hinzufügen' }), el('small', { text: 'Eine .sudoplugin- oder HTML-Datei, z. B. ein Werkzeug deiner Firma. Gleicher Name ersetzt die alte Fassung. Ein Doppelklick auf eine .sudoplugin-Datei geht auch.' }), msg),
               el('button', { class: 'act', text: 'Datei wählen …', on: { click: async () => { const r = await host.action('pluginAdd'); snap = await host.get(); render(); done(r); } } }))
             : el('p', { class: 'note', text: 'Deine IT erlaubt keine eigenen Plugins. Plugins der IT kommen über die Sudo-Zentrale.' })),
         section('Sicherheit',

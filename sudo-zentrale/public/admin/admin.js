@@ -856,7 +856,7 @@
       const meta = (html, n) => { const m = html.match(new RegExp(`<meta\\s+name=["']sudo-plugin-${n}["']\\s+content=["']([^"']*)["']`, 'i')); return m ? m[1].trim() : ''; };
       const slug = s => String(s || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
       let html = '';
-      const file = el('input', { type: 'file', accept: '.html,.htm,text/html' });
+      const file = el('input', { type: 'file', accept: '.sudoplugin,.html,.htm,text/html' });
       const fName = el('input', { type: 'text', maxlength: 60, placeholder: 'wird aus der Datei gelesen' });
       const fId = el('input', { type: 'text', maxlength: 40, placeholder: 'z. B. naming-tool' });
       const fVer = el('input', { type: 'text', maxlength: 20, placeholder: 'z. B. 1.0' });
@@ -869,7 +869,7 @@
         if (f.size > 2097152) { toast('Das Plugin ist größer als 2 MB.', true); file.value = ''; return; }
         html = (await f.text()).replace(/^﻿/, '');
         const title = (html.match(/<title[^>]*>([^<]{1,120})<\/title>/i) || [])[1] || '';
-        fName.value = (meta(html, 'name') || title.trim() || f.name.replace(/\.html?$/i, '')).replace(/\s+/g, ' ').slice(0, 60);
+        fName.value = (meta(html, 'name') || title.trim() || f.name.replace(/\.(html?|sudoplugin)$/i, '')).replace(/\s+/g, ' ').slice(0, 60);
         fId.value = slug(meta(html, 'id') || fName.value);
         fVer.value = meta(html, 'version').slice(0, 20);
         size = (meta(html, 'size').match(/^(\d{3,4})\s*x\s*(\d{3,4})$/i) || [0, 0, 0]).slice(1).map(Number);
@@ -893,7 +893,7 @@
                 action('Entfernen', async () => { if (!confirm(`„${p.name}“ entfernen? Die Sudos löschen es beim nächsten Abgleich.`)) return; await api('DELETE', '/admin/api/plugins/' + p.id); go('plugins'); }, 'small danger')))); }))))
           : el('p', { class: 'empty', text: 'Noch kein Plugin. Lade unten eine HTML-Datei hoch.' }),
           el('div', { class: 'qform' }, el('h4', { text: 'Plugin hochladen' }),
-            el('label', { class: 'f' }, 'HTML-Datei (höchstens 2 MB)', file), info,
+            el('label', { class: 'f' }, '.sudoplugin- oder HTML-Datei (höchstens 2 MB)', file), info,
             el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Name', fName), el('label', { class: 'f' }, 'Kennung', fId)),
             el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Version', fVer), el('label', { class: 'f' }, 'Für wen', fTgt)),
             el('div', { class: 'row' }, action('Hochladen', async () => {

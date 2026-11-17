@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { pathToFileURL, fileURLToPath } = require('url');
+const { execFile } = require('child_process');
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const SOURCES = ['eigene', 'zentrale'];
@@ -91,8 +92,8 @@ function createPlugins({ dir, log = () => {}, electron, icon, devTools = false }
     return out.sort((a, b) => a.name.localeCompare(b.name, 'de'));
   }
 
-  /** Eigenes Plugin aus einer HTML-Datei hinzufügen (gleiche Kennung ersetzt die alte Fassung) */
-  function addFile(filePath) {
+  /** Datei prüfen, ohne sie zu übernehmen (für die Rückfrage beim Doppelklick auf .sudoplugin) */
+  function inspect(filePath) {
     if (!userAllowed) return { ok: false, msg: 'Deine IT erlaubt keine eigenen Plugins.' };
     let html;
     try {
@@ -102,7 +103,15 @@ function createPlugins({ dir, log = () => {}, electron, icon, devTools = false }
     const bad = checkHtml(html);
     if (bad) return { ok: false, msg: bad };
     const info = describe(html, path.basename(filePath));
-    const had = !!read('eigene', info.id);
+    const old = read('eigene', info.id);
+    return { ok: true, info, html, had: !!old, oldVersion: old ? old.version : '' };
+  }
+
+  /** Eigenes Plugin aus einer HTML- oder .sudoplugin-Datei hinzufügen (gleiche Kennung ersetzt die alte Fassung) */
+  function addFile(filePath) {
+    const c = inspect(filePath);
+    if (!c.ok) return c;
+    const { info, html, had } = c;
     write('eigene', info, html);
     log(`Plugin ${had ? 'aktualisiert' : 'hinzugefügt'}: ${info.name}`);
     return { ok: true, msg: had ? `„${info.name}“ aktualisiert.` : `„${info.name}“ hinzugefügt.`, id: info.id };
@@ -208,8 +217,39 @@ function createPlugins({ dir, log = () => {}, electron, icon, devTools = false }
     return true;
   }
 
+  /* ---------- Dateiendung .sudoplugin (1.13) ----------
+     Trägt die Endung nur für den angemeldeten Benutzer ein (HKCU\Software\Classes) – ohne Adminrechte,
+     gleich für Setup, MSI und portable EXE. Schreibt nur, was sich geändert hat (z. B. neuer Programmpfad).
+     Das Symbol wird nach %APPDATA%\Sudo kopiert, weil Windows nicht in app.asar hineinsehen kann. */
+  const reg = args => new Promise(res => execFile('reg.exe', args, { windowsHide: true, timeout: 8000 }, (e, out) => res(e ? null : String(out || ''))));
+  async function regDefault(key) {
+    const out = await reg(['query', key, '/ve']);
+    const m = out && out.match(/REG_(?:EXPAND_)?SZ\s+(.*)$/m);
+    return m ? m[1].trim() : null;
+  }
+  async function registerFileType({ ext = '.sudoplugin', progId = 'Sudo.Plugin', typeName = 'Sudo-Plugin', command, iconSrc, iconDir, notify = () => {} }) {
+    if (process.platform !== 'win32') return { ok: false, changed: false };
+    let iconPath = '';
+    try {
+      iconPath = path.join(iconDir, 'plugin-file.ico');
+      const src = fs.readFileSync(iconSrc);
+      if (!fs.existsSync(iconPath) || !fs.readFileSync(iconPath).equals(src)) fs.writeFileSync(iconPath, src);
+    } catch (e) { log('Plugin-Symbol: ' + e.message); iconPath = ''; }
+    const base = 'HKCU\\Software\\Classes\\';
+    const want = [[base + ext, progId], [base + progId, typeName], [base + progId + '\\shell\\open\\command', command]];
+    if (iconPath) want.push([base + progId + '\\DefaultIcon', `"${iconPath}",0`]);
+    let changed = false;
+    for (const [key, value] of want) {
+      if ((await regDefault(key)) === value) continue;
+      if ((await reg(['add', key, '/ve', '/d', value, '/f'])) === null) { log('Dateiendung ' + ext + ': Eintrag fehlgeschlagen (' + key + ')'); return { ok: false, changed }; }
+      changed = true;
+    }
+    if (changed) { notify(); log(`Dateiendung ${ext} eingetragen`); }
+    return { ok: true, changed };
+  }
+
   return {
-    list, addFile, remove, open, syncZentrale,
+    list, inspect, addFile, remove, open, syncZentrale, registerFileType,
     setUserAllowed: v => { userAllowed = v !== false; if (!userAllowed) for (const id of ids('eigene')) closeWin('eigene', id); },
     userAllowed: () => userAllowed,
     lastWin: () => (lastWin && !lastWin.isDestroyed() ? lastWin : null)

@@ -13,7 +13,7 @@ Verwaltung → **Schnittstellen** → Name eintragen (z. B. `n8n`) → **Erzeuge
 ## 2. Die Anfrage
 
 ```
-POST https://sudo.meikosoft.net/api/events
+POST https://sudo.example.com/api/events
 Authorization: Bearer szk_…
 Content-Type: application/json
 
@@ -139,7 +139,7 @@ Content-Type: application/json
 
 ```powershell
 $body = @{ type = 'backup_failed'; kunde = 'Muster GmbH – Veeam Job NAS'; target = 'group:IT' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'https://sudo.meikosoft.net/api/events' `
+Invoke-RestMethod -Method Post -Uri 'https://sudo.example.com/api/events' `
   -Headers @{ Authorization = 'Bearer szk_…' } -ContentType 'application/json; charset=utf-8' `
   -Body ([Text.Encoding]::UTF8.GetBytes($body))
 ```
@@ -147,7 +147,7 @@ Invoke-RestMethod -Method Post -Uri 'https://sudo.meikosoft.net/api/events' `
 **curl:**
 
 ```bash
-curl -X POST https://sudo.meikosoft.net/api/events \
+curl -X POST https://sudo.example.com/api/events \
   -H "Authorization: Bearer szk_…" -H "Content-Type: application/json" \
   -d '{"type":"server_down","host":"web01","text":"Ping weg seit 5 Minuten","target":"group:IT"}'
 ```
@@ -170,7 +170,7 @@ So steht der Schlüssel nicht im Klartext im Workflow und taucht beim Teilen ode
 | Einstellung | Wert |
 |---|---|
 | Method | `POST` |
-| URL | `https://sudo.meikosoft.net/api/events` |
+| URL | `https://sudo.example.com/api/events` |
 | Authentication | `Generic Credential Type` → `Header Auth` → `Sudo-Zentrale` |
 | Send Body | an, Body Content Type `JSON`, Specify Body `Using JSON` |
 | JSON | siehe unten |

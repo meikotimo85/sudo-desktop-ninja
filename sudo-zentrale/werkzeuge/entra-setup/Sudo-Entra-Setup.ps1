@@ -19,15 +19,15 @@
   Geführte Einrichtung mit Fragen.
 
 .EXAMPLE
-  .\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.meikosoft.net -SharePoint "https://firma.sharepoint.com/sites/IT/Freigegebene Dokumente/Anleitungen"
+  .\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.example.com -SharePoint "https://firma.sharepoint.com/sites/IT/Freigegebene Dokumente/Anleitungen"
   Wissen aus SharePoint einrichten und direkt in der Zentrale eintragen.
 
 .EXAMPLE
-  .\Sudo-Entra-Setup.ps1 -Pruefen -ZentraleUrl https://sudo.meikosoft.net
+  .\Sudo-Entra-Setup.ps1 -Pruefen -ZentraleUrl https://sudo.example.com
   Nur prüfen (ändert nichts): Berechtigungen, Freigaben, Ablauf des Geheimnisses.
 
 .EXAMPLE
-  .\Sudo-Entra-Setup.ps1 -NeuesGeheimnis -AlteGeheimnisseEntfernen -ZentraleUrl https://sudo.meikosoft.net
+  .\Sudo-Entra-Setup.ps1 -NeuesGeheimnis -AlteGeheimnisseEntfernen -ZentraleUrl https://sudo.example.com
   Geheimnis erneuern (z. B. kurz vor Ablauf), in der Zentrale eintragen, alte Geheimnisse löschen.
 #>
 [CmdletBinding()]
@@ -155,7 +155,7 @@ if ($Interaktiv) {
   Write-Host '  4  Probelauf (zeigt, was passieren würde)'
   $wahl = Frage 'Was möchtest du tun?' '1'
   switch ($wahl) { '2' { $Pruefen = $true } '3' { $NeuesGeheimnis = $true } '4' { $Probelauf = $true } }
-  $ZentraleUrl = Frage 'Adresse der Sudo-Zentrale' 'https://sudo.meikosoft.net'
+  $ZentraleUrl = Frage 'Adresse der Sudo-Zentrale' 'https://sudo.example.com'
 }
 
 # ---------------------------------------------------------------- Manifest der Zentrale

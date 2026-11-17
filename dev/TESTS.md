@@ -54,6 +54,16 @@ $env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-dex.py      # gegen Node
 ```
 Erwartet: alle Zeilen „OK“, am Ende „Alles gut“. Gegen PHP prüft der Test zusätzlich, was `/api/poll` unter `dex` liefert.
 
+## End-to-End-Test Plugins (ab 1.12)
+Frische Datenbank nötig, kein Nachbau. Gegen Node holt der Test die Konfiguration per WebSocket (braucht `node` ab 22 im PATH).
+```powershell
+python dev\test-plugins.py                         # gegen PHP (8091)
+$env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-plugins.py  # gegen Node
+```
+Erwartet: 32 Zeilen „OK“, am Ende „Alles gut“.
+
+Im Client: `SUDO_PLUGIN_ADD=<html-datei>` fügt ein eigenes Plugin hinzu, `SUDO_OPEN_PLUGIN=<id>` (oder `zentrale/<id>`) öffnet es, `SUDO_PLUGIN_JS` führt JS darin aus (Ergebnis als `[plugin-js]`). `SUDO_ENROLL="http://127.0.0.1:8091|TEST-PHP-1234"` meldet den Test-Sudo an der Zentrale an – so lässt sich die Verteilung von der Zentrale bis ins Fenster prüfen. `SUDO_TRAY_DUMP=1` gibt das Tray-Menü als `[tray]` aus (prüft, ob „Plugins“ mit allen Einträgen erscheint). Abschottung prüfen: ein Plugin mit `fetch('http://127.0.0.1:9/')` muss mit „Failed to fetch“ scheitern, im `events.log` steht „Plugin: Zugriff gesperrt“.
+
 ## Client (Sudo Desktop)
 ```powershell
 cd sudo-desktop; npm install; npm start
@@ -64,6 +74,7 @@ $env:SUDO_TEST='1'; $env:SUDO_OPEN_SETTINGS='behavior'; $env:SUDO_TEST_MS='8000'
 ```
 Weitere Hooks: `SUDO_OPEN_MUSIC`, `SUDO_MUSIC_JS`, `SUDO_SETTINGS_JS`, `SUDO_OPEN_HELP`, `SUDO_OPEN_QUIZ`, `SUDO_OPEN_PRIVACY`, `SUDO_YT_BASE` (eigene Kanäle gegen den Nachbau, prüft dann alle 6 s), `SUDO_TEST_XP`, `SUDO_UNLOCK_ALL` – siehe Ende von `main.js`.
 Achtung: Der Testmodus nutzt sonst die echten Einstellungen unter `%APPDATA%\Sudo`. Besser mit eigenem Datenordner starten: `npx electron . --user-data-dir=C:\temp\sudo-test` – das schützt die echten Daten und läuft auch neben einem installierten Sudo.
+Neu in 1.11.1: `SUDO_FAKE_LOCK_MS=3000` meldet nach 3 s „gesperrt“ ohne „entsperrt“ – im `events.log` muss nach gut 10 s „Entsperrt (ohne Meldung von Windows erkannt)“ stehen; `SUDO_FAKE_RDP_MS=20000` meldet ab 20 s eine RDP-Sitzung („Sitzung jetzt über Remotedesktop“).
 Neu in 1.11: `SUDO_HISTORY_JS` (JS im Verlaufsfenster, zusammen mit `SUDO_OPEN_HISTORY`; Ergebnis als `[history-js]` in der Konsole) – damit lässt sich die Suche prüfen, z. B. Suchfeld `.q` füllen und `.item` zählen. Sprite-Vorschau: `npm run sheet -- --vorschau`.
 Neu in 1.10: `SUDO_OPEN_MEET`, `SUDO_OPEN_PULSE`, `SUDO_OPEN_START` (Fenster öffnen, Wert = Verzögerung in ms), `SUDO_TIP=excel` (Tipp-Blase), `SUDO_CARE=lockhint` (Sperr-Erinnerung), `SUDO_FAKE_ONBOARD=1` (Checkliste mit erfundenen Prüfergebnissen), `SUDO_FAKE_SELFHELP=1` (Langsam-Analyse mit Beispielwerten).
 

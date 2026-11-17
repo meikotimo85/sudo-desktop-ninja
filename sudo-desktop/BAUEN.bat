@@ -35,9 +35,16 @@ if %WAHL%==2 set ZIEL=dist:setup
 if %WAHL%==3 set ZIEL=dist:msi
 if %WAHL%==4 set ZIEL=dist:all
 
+rem Update-Adresse fuer das Selbst-Update: aus update-adresse.txt (nicht im Repo), sonst die Beispieladresse aus package.json
+set UPDURL=
+if exist update-adresse.txt set /p UPDURL=<update-adresse.txt
+set EXTRA=
+if defined UPDURL set EXTRA=-- -c.publish.url=%UPDURL%
+if defined UPDURL (echo Update-Adresse: %UPDURL%) else (echo Hinweis: keine update-adresse.txt - das Selbst-Update zeigt auf die Beispieladresse und funktioniert nicht.)
+
 echo.
 echo Baue ... das dauert ein paar Minuten. Beim ersten Mal laedt der Builder noch Werkzeuge nach.
-call npm run %ZIEL%
+call npm run %ZIEL% %EXTRA%
 if errorlevel 1 ( echo. & echo Build fehlgeschlagen. Bitte die Meldungen oben an Claude schicken. & pause & exit /b 1 )
 
 echo.
@@ -49,7 +56,7 @@ goto ende
 :upd
 echo.
 echo Fuer automatische Updates diese Dateien auf deinen Webspace hochladen
-echo (Adresse steht in package.json unter build.publish.url):
+if defined UPDURL (echo Adresse: %UPDURL%) else (echo Adresse fehlt - bitte update-adresse.txt anlegen und neu bauen)
 echo   - dist\latest.yml
 echo   - dist\Sudo-Setup-*.exe
 echo   - dist\Sudo-Setup-*.exe.blockmap

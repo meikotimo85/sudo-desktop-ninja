@@ -23,6 +23,8 @@ const { createYouTube } = require('./youtube');
 const { createDiag } = require('./diag');
 const { createHabits, HABITS_DEFAULTS } = require('./habits');       // 1.10: Sperr-Erinnerung, Tipps
 const { createCheckin, CHECKIN_DEFAULTS } = require('./checkin');    // 1.10: Stimmung, Start-Checkliste
+const { createPlugins } = require('./plugins');                     // 1.12: Plugins (abgeschottete HTML-Werkzeuge)
+let plugins = null;
 const { rebootPending } = require('./health');
 const { createDeck, deckPublic, normalizeDeck, cleanCustom, BUILTIN: DECK_BUILTIN, DECK_DEFAULTS, MAX_CUSTOM } = require('./deck');
 const I18N = require('./renderer/i18n.js');
@@ -366,6 +368,7 @@ function poll() {
       hiddenForFullscreen = full;
       if (full) win.hide(); else { win.showInactive(); setIgnore(true, true); }
     }
+    checkSession();
     if (hiddenForFullscreen || locked) return;
     checkMouse();
     // 1.9: Fensterliste nicht bei jedem Takt abfragen: nach einer Änderung 3 s lang jeden Takt,
@@ -1002,6 +1005,15 @@ function mIcon(name) {
 }
 // Unter Windows ist „&“ im Menü ein Kürzelzeichen und verschwindet – darum verdoppeln
 const ML = (text) => T(text).replace(/&/g, '&&');
+// 1.12: Plugins als Untermenü (nur, wenn es welche gibt)
+function pluginTray() {
+  const list = plugins ? plugins.list() : [];
+  if (!list.length) return [];
+  return [{ label: ML('Plugins'), icon: mIcon('plugin'), submenu: [
+    ...list.map(p => ({ label: p.name.replace(/&/g, '&&') + (p.source === 'zentrale' ? '' : ' ' + T('(eigenes)')), click: () => plugins.open(p.source, p.id) })),
+    { type: 'separator' },
+    { label: ML('Plugins verwalten …'), click: () => openSettings('plugins') }] }];
+}
 function buildTrayMenu() {
   if (!tray) return;
   const enrolled = !!(zentraleApi && zentraleApi.status().enrolled);
@@ -1013,6 +1025,7 @@ function buildTrayMenu() {
     { label: ML('Erinnerung / Notiz …'), icon: mIcon('note'), accelerator: shortcutOk.quick ? 'Control+Alt+N' : undefined, registerAccelerator: false, click: openQuick },
     { label: ML('Frag Sudo …'), icon: mIcon('ask'), accelerator: shortcutOk.ask ? 'Control+Alt+S' : undefined, registerAccelerator: false, click: () => openAsk() },
     { label: ML('Werkzeugkasten …'), icon: mIcon('tools'), accelerator: shortcutOk.tools ? 'Control+Alt+K' : undefined, registerAccelerator: false, click: () => openTools() },
+    ...pluginTray(),
     { label: ML('Selbsthilfe …'), icon: mIcon('help'), click: () => openSelfHelp() },
     { label: ML('Meeting-Check: Ton & Bild …'), icon: mIcon('help'), click: openMeet },
     ...(zentraleApi && zentraleApi.kbOn() ? [{ label: ML('Anleitungen …'), icon: mIcon('book'), click: () => openKb() }] : []),
@@ -1054,6 +1067,8 @@ function buildTrayMenu() {
   ]);
   tray.setContextMenu(menu);
   tray.setToolTip(T(trayTip));
+  // Nur Test: Tray-Menü ausgeben (Untermenüs mit ihren Einträgen)
+  if (TEST && process.env.SUDO_TRAY_DUMP) console.log('[tray]', JSON.stringify(menu.items.filter(i => i.label).map(i => (i.submenu ? { [i.label]: i.submenu.items.map(s => s.label).filter(Boolean) } : i.label))));
 }
 
 /* ---------- Einstellungs-Zentrale ---------- */
@@ -1122,11 +1137,17 @@ function settingsSnapshot() {
       habits: { lockHint: settings.habits.lockHint !== false, tips: settings.habits.tips || 'normal', tipsManaged: tipsBlocked() }, history: { days: historyDays(), n: historyLoad().length } },
     langEff: effLang(),
     displays: screen.getAllDisplays().map((d, i) => ({ id: d.id, label: `Bildschirm ${i + 1}${d.id === prim ? ' (Haupt)' : ''} · ${d.size.width} × ${d.size.height}` })),
-    relay: relayStatus, home: homeLabel(), shortcuts: { ...shortcutOk }, skin: skinStatus(), ai: ask ? ask.status() : null, zentrale: zentraleApi ? zentraleApi.status() : null,
+    plugins: pluginsView(), relay: relayStatus, home: homeLabel(), shortcuts: { ...shortcutOk }, skin: skinStatus(), ai: ask ? ask.status() : null, zentrale: zentraleApi ? zentraleApi.status() : null,
     info: aboutInfo(), update: { ...update, canUpdate: canAutoUpdate() }, eco: ecoActive, battery: powerMonitor.isOnBatteryPower()
   };
 }
 function mediaView() { const m = settings.media || {}; return { videos: m.videos !== false, max: youtube ? youtube.max : 10, channels: (m.channels || []).map(c => ({ id: c.id, title: c.title, handle: c.handle, shorts: !!c.shorts, checked: c.checked || 0, error: c.error || '' })) }; }
+// 1.12: Plugins – Tray und Einstellungen auffrischen
+function pluginsChanged() {
+  if (tray) buildTrayMenu();
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-plugins');
+}
+function pluginsView() { return plugins ? { allowed: plugins.userAllowed(), items: plugins.list().map(p => ({ id: p.id, source: p.source, name: p.name, version: p.version })) } : { allowed: true, items: [] }; }
 ipcMain.handle('center-get', () => settingsSnapshot());
 ipcMain.handle('center-set', (_e, key, value) => {
   const fn = SETTERS[key];
@@ -1164,7 +1185,22 @@ ipcMain.handle('center-action', async (_e, action, arg) => {
     case 'ytShorts': if (youtube && arg) youtube.setShorts(String(arg.id || ''), !!arg.on); return { ok: true, media: mediaView() };
     case 'ytCheck': { const r = youtube ? await youtube.check(true) : { fresh: 0 }; return { ok: true, msg: r.fresh ? T('{x} neue Videos.').replace('{x}', r.fresh) : T('Keine neuen Videos.'), media: mediaView() }; }
     case 'zentraleEnroll': return zentraleApi ? zentraleApi.enroll((arg || {}).url, (arg || {}).code) : { ok: false };
-    case 'zentraleLeave': return zentraleApi ? zentraleApi.leave() : { ok: false };
+    case 'zentraleLeave': {
+      const r = zentraleApi ? zentraleApi.leave() : { ok: false };
+      if (r && r.ok && plugins) { plugins.setUserAllowed(true); plugins.syncZentrale([], async () => null).then(pluginsChanged); }
+      return r;
+    }
+    // 1.12: Plugins
+    case 'pluginAdd': {
+      if (!plugins) return { ok: false };
+      const r = await dialog.showOpenDialog(settingsWin || undefined, { title: T('Plugin hinzufügen'), properties: ['openFile'], filters: [{ name: T('Plugin (HTML-Datei)'), extensions: ['html', 'htm'] }] });
+      if (r.canceled || !r.filePaths[0]) return { ok: false };
+      const a = plugins.addFile(r.filePaths[0]);
+      pluginsChanged();
+      return { ...a, msg: T(a.msg) };
+    }
+    case 'pluginOpen': return { ok: !!(plugins && arg && plugins.open(String(arg.source), String(arg.id))) };
+    case 'pluginRemove': { const r = plugins ? plugins.remove(String(arg || '')) : { ok: false }; pluginsChanged(); return { ...r, msg: T(r.msg || '') }; }
     case 'zentraleReconnect': if (zentraleApi) zentraleApi.reconnect(); return { ok: true, msg: 'Verbinde neu …' };
     case 'skinFolder': openSkinFolder(); break;
     case 'skinReload': reloadSkin(); return { ok: true, msg: skinStatus().text + ' – neu geladen.' };
@@ -1221,6 +1257,8 @@ async function diagnostics() {
   if (ask) { const a = ask.status(); add('Frag Sudo', `${a.mode} · ${a.model} · heute ${a.today.q} Fragen`); }
   add('Sparmodus', `${settings.eco} → ${ecoActive ? 'aktiv' : 'inaktiv'}${powerMonitor.isOnBatteryPower() ? ' (Akku)' : ''}`);
   add('Meeting erkannt', inMeeting ? 'ja' : 'nein'); add('Vollbild versteckt', hiddenForFullscreen ? 'ja' : 'nein');
+  add('Remotedesktop (RDP)', win32.remoteSession() ? 'ja' : 'nein'); add('Gesperrt', locked ? 'ja' : 'nein');
+  { const ex = win32.exStyle(ownId); add('Overlay klickbar', `${ignoring ? 'nein (durchklickbar)' : 'ja'}` + (ex === null ? '' : ` · Fensterstil ${ex.toString(16)}${ex & 0x20 ? ' (WS_EX_TRANSPARENT)' : ''}`)); }
   add('Updates', `${settings.autoUpdate ? 'automatisch' : 'aus'} · ${update.state}${update.error ? ' · ' + update.error : ''}`);
   lines.push('', 'Bildschirme:');
   screen.getAllDisplays().forEach((d, n) => lines.push(`  ${n + 1}: ${d.size.width}×${d.size.height} @ ${d.scaleFactor * 100} %, Position ${d.bounds.x},${d.bounds.y}${display && d.id === display.id ? '  ← Sudo' : ''}`));
@@ -1458,10 +1496,10 @@ function privacySnapshot() {
     zentrale: { enrolled: !!z.enrolled, host: hostOf(settings.zentrale && settings.zentrale.url), name: z.name || os.hostname(), user: os.userInfo().username, upn: (zentraleApi && zentraleApi.upn && zentraleApi.upn()) || '', health: !!(zentraleApi && zentraleApi.healthReporting && zentraleApi.healthReporting()) },
     health: health ? health.snapshot().overall : 'unknown', quiz: quiz ? { ...quiz.config(), ...quiz.stats() } : null,
     visits: { allow: settings.visits.allow !== false, name: settings.visits.name || os.userInfo().username },
-    media: mediaView(), history: { n: historyLoad().length, days: historyDays() },
+    media: mediaView(), history: { n: historyLoad().length, days: historyDays() }, plugins: plugins ? plugins.list().length : 0,
     relay: { on: !!(settings.relay && settings.relay.enabled), host: hostOf(settings.relay && settings.relay.url) },
     webhook: !!(server && server.listening), port: PORT,
-    updates: { auto: settings.autoUpdate !== false, host: 'updates.meikosoft.net' },
+    updates: { auto: settings.autoUpdate !== false, host: updateHost() },
     hideFromCapture: settings.hideFromCapture !== false, meetingQuiet: settings.meetingQuiet !== false
   };
 }
@@ -1558,6 +1596,15 @@ ipcMain.handle('tour-finish', (_e, opts) => {
 ipcMain.handle('tour-get', () => ({ autostart: settings.autostart, size: settings.size, shortcuts: { ...shortcutOk } }));
 
 /* ---------- Auto-Update (nur bei installierter Version) ---------- */
+// Update-Server für die Datenschutz-Anzeige: steht in der beim Bauen erzeugten app-update.yml (Adresse aus update-adresse.txt)
+let updHost = null;
+function updateHost() {
+  if (updHost === null) {
+    try { const m = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8').match(/^url:\s*['"]?(https?:\/\/[^\/'"\s]+)/m); updHost = m ? new URL(m[1]).host : ''; }
+    catch { updHost = ''; }
+  }
+  return updHost || T('kein Update-Server (Entwicklerstart oder portable EXE)');
+}
 const update = { state: 'idle', version: null, error: null, progress: 0 };
 let updater = null;
 function canAutoUpdate() { return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !/program files/i.test(process.execPath); }
@@ -1676,7 +1723,7 @@ function createWindow() {
   });
   if (TEST) {
     setTimeout(async () => {
-      const target = meetWin && !meetWin.isDestroyed() ? meetWin : pulseWin && !pulseWin.isDestroyed() ? pulseWin : startWin && !startWin.isDestroyed() ? startWin : kbWin && !kbWin.isDestroyed() ? kbWin : historyWin && !historyWin.isDestroyed() ? historyWin : musicWin && !musicWin.isDestroyed() ? musicWin : helpWin && !helpWin.isDestroyed() ? helpWin : hinweiseWin && !hinweiseWin.isDestroyed() ? hinweiseWin : quizWin && !quizWin.isDestroyed() ? quizWin : privacyWin && !privacyWin.isDestroyed() ? privacyWin : visitWin && !visitWin.isDestroyed() ? visitWin : askWin && !askWin.isDestroyed() ? askWin : lageWin && !lageWin.isDestroyed() ? lageWin : settingsWin && !settingsWin.isDestroyed() ? settingsWin : tourWin && !tourWin.isDestroyed() ? tourWin : wardrobeWin && !wardrobeWin.isDestroyed() ? wardrobeWin : toolsWin && !toolsWin.isDestroyed() ? toolsWin : quickWin && !quickWin.isDestroyed() ? quickWin : workWin && !workWin.isDestroyed() ? workWin : statsWin && !statsWin.isDestroyed() ? statsWin : relayWin && !relayWin.isDestroyed() ? relayWin : win;
+      const target = plugins && plugins.lastWin() ? plugins.lastWin() : meetWin && !meetWin.isDestroyed() ? meetWin : pulseWin && !pulseWin.isDestroyed() ? pulseWin : startWin && !startWin.isDestroyed() ? startWin : kbWin && !kbWin.isDestroyed() ? kbWin : historyWin && !historyWin.isDestroyed() ? historyWin : musicWin && !musicWin.isDestroyed() ? musicWin : helpWin && !helpWin.isDestroyed() ? helpWin : hinweiseWin && !hinweiseWin.isDestroyed() ? hinweiseWin : quizWin && !quizWin.isDestroyed() ? quizWin : privacyWin && !privacyWin.isDestroyed() ? privacyWin : visitWin && !visitWin.isDestroyed() ? visitWin : askWin && !askWin.isDestroyed() ? askWin : lageWin && !lageWin.isDestroyed() ? lageWin : settingsWin && !settingsWin.isDestroyed() ? settingsWin : tourWin && !tourWin.isDestroyed() ? tourWin : wardrobeWin && !wardrobeWin.isDestroyed() ? wardrobeWin : toolsWin && !toolsWin.isDestroyed() ? toolsWin : quickWin && !quickWin.isDestroyed() ? quickWin : workWin && !workWin.isDestroyed() ? workWin : statsWin && !statsWin.isDestroyed() ? statsWin : relayWin && !relayWin.isDestroyed() ? relayWin : win;
       if (process.env.SUDO_SCROLL) { await target.webContents.executeJavaScript(`{const m=document.querySelector('main');if(m)m.scrollTop=${Number(process.env.SUDO_SCROLL)};document.scrollingElement.scrollTop=${Number(process.env.SUDO_SCROLL)};}`); await new Promise(r => setTimeout(r, 300)); }
       const img = await target.webContents.capturePage();
       fs.writeFileSync(process.env.SUDO_SHOT || 'shot.png', img.toPNG());
@@ -1703,6 +1750,33 @@ function applyEco() {
   const e = isEco();
   if (e !== ecoActive) { ecoActive = e; startPoll(); writeLog(e ? 'Sparmodus an' : 'Sparmodus aus'); }
   send('eco', ecoActive);
+}
+
+/* ---------- Sperre und Sitzungswechsel (1.11.1) ----------
+   Bei RDP-Sitzungswechseln meldet Windows nicht immer „entsperrt“. Dann bliebe `locked` hängen:
+   poll() prüft die Maus nicht mehr, das Overlay bleibt durchklickbar und Sudo pausiert.
+   Außerdem ändern sich beim Wechsel lokal ↔ RDP Grafik, Bildschirme und DPI – wie nach dem Entsperren
+   wird das Overlay dann frisch erzeugt. Beides prüft poll() alle 3 Sekunden. */
+let lastSessionCheck = 0, remote = null, lockedAt = 0;
+const isRemote = () => (TEST && process.env.SUDO_FAKE_RDP_MS ? process.uptime() * 1000 > Number(process.env.SUDO_FAKE_RDP_MS) : win32.remoteSession());
+function onUnlocked(how) {
+  locked = false;
+  if (how === 'unlock-screen' && habits) habits.onUnlock();
+  writeLog(how === 'resume' ? 'Standby beendet' : how === 'unlock-screen' ? 'Entsperrt' : 'Entsperrt (ohne Meldung von Windows erkannt)');
+  setTimeout(recreateOverlay, 2000);
+}
+function checkSession() {
+  if (Date.now() - lastSessionCheck < 3000) return;
+  lastSessionCheck = Date.now();
+  const r = isRemote();
+  if (remote !== null && r !== remote) {
+    writeLog(r ? 'Sitzung jetzt über Remotedesktop – Overlay wird neu erzeugt' : 'Sitzung wieder lokal – Overlay wird neu erzeugt');
+    setTimeout(recreateOverlay, 2000);
+  }
+  remote = r;
+  // Sperre ohne passendes Entsperren: Windows sagt, der Bildschirm ist nicht mehr gesperrt
+  // (erst 10 s nach dem Sperren, damit der Wechsel auf den Sperrbildschirm sicher abgeschlossen ist)
+  if (locked && Date.now() - lockedAt > 10000 && powerMonitor.getSystemIdleState(60) !== 'locked') onUnlocked('fallback');
 }
 
 /* ---------- Durchklicken: Hauptprozess prüft die Mausposition selbst ---------- */
@@ -1757,12 +1831,7 @@ app.whenReady().then(() => {
   // Nach Standby oder Sperrbildschirm Fenster und Durchklicken neu setzen
   // Nach Sperren/Entsperren oder Standby verliert Windows bei durchsichtigen Overlay-Fenstern gern die
   // Klick-Einstellungen. Am zuverlässigsten: das Overlay-Fenster einmal frisch erzeugen.
-  for (const ev of ['resume', 'unlock-screen']) powerMonitor.on(ev, () => {
-    locked = false;
-    if (ev === 'unlock-screen' && habits) habits.onUnlock();
-    writeLog(ev === 'resume' ? 'Standby beendet' : 'Entsperrt');
-    setTimeout(recreateOverlay, 2000);
-  });
+  for (const ev of ['resume', 'unlock-screen']) powerMonitor.on(ev, () => onUnlocked(ev));
   screen.on('display-metrics-changed', onDisplays);
   screen.on('display-added', onDisplays);
   screen.on('display-removed', onDisplays);
@@ -1782,6 +1851,10 @@ app.whenReady().then(() => {
   if (TEST && process.env.SUDO_OPEN_KB) setTimeout(() => openKb(process.env.SUDO_OPEN_KB === '1' ? '' : process.env.SUDO_OPEN_KB), Number(process.env.SUDO_OPEN_KB_MS) || 6000);
   if (TEST && process.env.SUDO_OVERLAY_JS) setTimeout(() => win.webContents.executeJavaScript(process.env.SUDO_OVERLAY_JS).then(r => console.log('[overlay-js]', JSON.stringify(r))).catch(e => console.log('[overlay-js] Fehler', e.message)), Number(process.env.SUDO_OVERLAY_MS) || 4000);
   if (TEST && process.env.SUDO_OPEN_HISTORY) setTimeout(openHistory, Number(process.env.SUDO_OPEN_HISTORY) || 1500);
+  // 1.12: Plugin hinzufügen / öffnen / JS darin ausführen (Ergebnis als [plugin-js] in der Konsole)
+  if (TEST && process.env.SUDO_PLUGIN_ADD) setTimeout(() => { console.log('[plugin-add]', JSON.stringify(plugins.addFile(process.env.SUDO_PLUGIN_ADD))); pluginsChanged(); }, 1000);
+  if (TEST && process.env.SUDO_OPEN_PLUGIN) setTimeout(() => { const v = process.env.SUDO_OPEN_PLUGIN.split('/'); console.log('[plugin-open]', plugins.open(v.length > 1 ? v[0] : 'eigene', v.pop())); }, Number(process.env.SUDO_OPEN_PLUGIN_MS) || 1800);
+  if (TEST && process.env.SUDO_PLUGIN_JS) setTimeout(() => { const w = plugins.lastWin(); if (w) w.webContents.executeJavaScript(process.env.SUDO_PLUGIN_JS, true).then(r => console.log('[plugin-js]', JSON.stringify(r))).catch(e => console.log('[plugin-js] Fehler', e.message)); else console.log('[plugin-js] kein Fenster'); }, Number(process.env.SUDO_PLUGIN_JS_MS) || 4500);
   if (TEST && process.env.SUDO_HISTORY_JS) setTimeout(() => { if (historyWin) historyWin.webContents.executeJavaScript(process.env.SUDO_HISTORY_JS).then(r => console.log('[history-js]', JSON.stringify(r))).catch(e => console.log('[history-js] Fehler', e.message)); }, 3500);
   if (TEST && process.env.SUDO_SETTINGS_JS) setTimeout(() => { if (settingsWin) settingsWin.webContents.executeJavaScript(process.env.SUDO_SETTINGS_JS).catch(e => writeLog('Test-JS: ' + e.message)); }, 3000);
   if (TEST && process.env.SUDO_OPEN_TOUR === '1') setTimeout(openTour, 800);
@@ -1796,7 +1869,9 @@ app.whenReady().then(() => {
   if (TEST && process.env.SUDO_KEYTEST === '1') setTimeout(() => { send('keytest'); setTimeout(() => ['char', 'char', 'backspace'].forEach(k => send('key', { k })), 2000); }, 1200);
   startPoll();
   for (const ev of ['on-ac', 'on-battery']) powerMonitor.on(ev, applyEco);
-  powerMonitor.on('lock-screen', () => { locked = true; send('pause', true); if (habits) habits.onLock(); });
+  powerMonitor.on('lock-screen', () => { locked = true; lockedAt = Date.now(); send('pause', true); if (habits) habits.onLock(); });
+  // Nur Test: Sperre ohne Entsperren nachstellen (wie bei manchen RDP-Wechseln)
+  if (TEST && process.env.SUDO_FAKE_LOCK_MS) setTimeout(() => { writeLog('Test: Sperre ohne Entsperren'); powerMonitor.emit('lock-screen'); }, Number(process.env.SUDO_FAKE_LOCK_MS));
   applyEco();
   appTimer = setInterval(appPoll, 1000);
   work = createWork({
@@ -1823,13 +1898,17 @@ app.whenReady().then(() => {
   ops = createOps({ getState: () => settings.ops, setState: o => { settings.ops = o; writeSettings(); }, zentrale: () => zentraleApi, announce: zentraleEvent, log: writeLog,
     isBusy: () => inMeeting || hiddenForFullscreen, openNotice: () => openHinweise(), rebootPending, test: TEST,
     onChange: () => { if (hinweiseWin && !hinweiseWin.isDestroyed()) hinweiseWin.webContents.send('ops-changed'); if (tray) buildTrayMenu(); } });
-  zentraleApi = createZentrale({ getSettings: () => settings, setSettings: z => { settings.zentrale = z; saveSettings(); }, onOps: o => ops.update(o), onMedia: () => { if (tray) buildTrayMenu(); }, onKb: () => { if (tray) buildTrayMenu(); },
+  plugins = createPlugins({ dir: path.join(app.getPath('userData'), 'plugins'), log: writeLog, electron: require('electron'), icon: path.join(__dirname, 'assets', 'icon.png'), devTools: TEST });
+  zentraleApi = createZentrale({ getSettings: () => settings, setSettings: z => { settings.zentrale = z; saveSettings(); }, onOps: o => ops.update(o),
+    onPlugins: p => { plugins.setUserAllowed(p.user !== false); plugins.syncZentrale(p.items, id => zentraleApi.pluginGet(id)).then(pluginsChanged); pluginsChanged(); }, onMedia: () => { if (tray) buildTrayMenu(); }, onKb: () => { if (tray) buildTrayMenu(); },
     onDex: () => { if (checkin) checkin.configChanged(); if (tray) buildTrayMenu(); if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-zentrale', zentraleApi.status()); },
     encrypt: secretEnc, decrypt: secretDec, fetch: (u, o) => net.fetch(u, o), log: writeLog, version: app.getVersion(), lang: () => effLang(), test: TEST,
     onEvent: zentraleEvent, visitPrefs: () => ({ allow: settings.visits.allow !== false, name: String(settings.visits.name || '').trim() || os.userInfo().username }),
     healthSummary: () => (health ? health.summary() : null), onQuiz: () => { if (quiz) quiz.serverChanged(); if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-zentrale', zentraleApi.status()); },
     onChange: z => { if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-zentrale', z); if (tray) buildTrayMenu(); if (z && z.enrolled) send('flag', 'zentrale'); } });
   zentraleApi.start().catch(e => writeLog('Zentrale: ' + e.message));
+  // Nur Test: an einer Zentrale anmelden („Adresse|Code“), z. B. für den Plugin-Abgleich
+  if (TEST && process.env.SUDO_ENROLL) setTimeout(async () => { const [u, c] = process.env.SUDO_ENROLL.split('|'); console.log('[enroll]', JSON.stringify(await zentraleApi.enroll(u, c))); }, 1500);
   // 1.8.1: eigene YouTube-Kanäle – der PC fragt die öffentlichen Feeds selbst ab (auch ohne Zentrale)
   youtube = createYouTube({ fetch: (u, o) => net.fetch(u, o), log: writeLog, announce: zentraleEvent, base: process.env.SUDO_YT_BASE || 'https://www.youtube.com',
     getState: () => settings.media, setState: o => { settings.media = { ...settings.media, ...o }; writeSettings(); },

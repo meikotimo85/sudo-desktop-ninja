@@ -47,7 +47,7 @@ function readUpn() {
   })().then(u => (upnCache = u)).catch(() => (upnCache = ''));
 }
 
-function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log, version, lang, onEvent, onConfig, onChange, test, visitPrefs, healthSummary, onQuiz, onOps, onMedia, onKb, onDex }) {
+function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log, version, lang, onEvent, onConfig, onChange, test, visitPrefs, healthSummary, onQuiz, onOps, onMedia, onKb, onDex, onPlugins }) {
   const prefs = () => (visitPrefs ? visitPrefs() : { allow: true, name: '' });
   const cfg = () => ({ ...ZENTRALE_DEFAULTS, ...(getSettings().zentrale || {}) });
   let ws = null, online = false, retry = 0, timer = null, lastError = '', serverAi = null, device = null, stopped = false, lastPing = 0;
@@ -57,12 +57,15 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
   let serverOps = null, opsJson = '';
   let serverKb = null;                                             // 1.9: Anleitungen aus SharePoint verfügbar
   let serverDex = null;                                            // 1.10: Stimmungsbarometer, Start-Checkliste, Tipps
+  let serverPlugins = null;                                        // 1.12: Plugins der IT + ob eigene erlaubt sind
   let serverMedia = null;                                          // 1.8: YouTube an/aus, Musikwünsche freigeschaltet + Kosten                              // 1.6: Hilfe-Kontakt, Störungen, Neustart-Kampagnen   // 1.5: Gerätezustand nur auf Anforderung, Quiz-Vorgaben der Zentrale
   const healthNow = () => { if (!healthWanted || !healthSummary) return null; const h = healthSummary(); return h && JSON.stringify(h) !== healthSent ? h : null; };
   const takeConfig = j => {
     healthWanted = !!(j.health && j.health.report);
     if (j.quiz && JSON.stringify(j.quiz) !== JSON.stringify(serverQuiz)) { serverQuiz = j.quiz; if (onQuiz) onQuiz(serverQuiz); }
     { const k = j.kb || { enabled: false }; if (JSON.stringify(k) !== JSON.stringify(serverKb)) { serverKb = k; if (onKb) { try { onKb(serverKb); } catch { /* egal */ } } } }
+    // 1.12: ältere Zentralen schicken kein „plugins“ – dann bleibt alles, wie es ist
+    if (j.plugins && JSON.stringify(j.plugins) !== JSON.stringify(serverPlugins)) { serverPlugins = j.plugins; if (onPlugins) { try { onPlugins(serverPlugins); } catch (e) { log('Zentrale-Plugins: ' + e.message); } } }
     if (j.dex && JSON.stringify(j.dex) !== JSON.stringify(serverDex)) { serverDex = j.dex; if (onDex) { try { onDex(serverDex); } catch (e) { log('Zentrale-Erlebnis: ' + e.message); } } }
     if (j.media && JSON.stringify(j.media) !== JSON.stringify(serverMedia)) { serverMedia = j.media; if (onMedia) { try { onMedia(serverMedia); } catch { /* egal */ } } }
     if (j.ops && JSON.stringify(j.ops) !== opsJson) { opsJson = JSON.stringify(j.ops); serverOps = j.ops; if (onOps) { try { onOps(serverOps); } catch (e) { log('Zentrale-Hinweise: ' + e.message); } } }
@@ -78,7 +81,7 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
 
   async function enroll(url, code) {
     url = normUrl(url);
-    if (!url) return { ok: false, msg: 'Bitte eine gültige Adresse eingeben, z. B. https://sudo.meikosoft.net' };
+    if (!url) return { ok: false, msg: 'Bitte eine gültige Adresse eingeben, z. B. https://sudo.example.com' };
     if (!/^https:/.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(url)) return { ok: false, msg: 'Adresse muss mit https:// beginnen.' };
     if (!String(code || '').trim()) return { ok: false, msg: 'Registrierungscode fehlt.' };
     try {
@@ -270,6 +273,8 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
     selfhelpUsed: (tool, ok) => call('POST', '/api/selfhelp', { tool, ok: !!ok }),
     // 1.10: Mitarbeiter-Erlebnis
     dexConfig: () => serverDex,
+    // 1.12: Plugin der Zentrale laden (HTML + Prüfsumme)
+    pluginGet: id => call('GET', '/api/plugins/' + encodeURIComponent(String(id))),
     pulseAnswer: a => call('POST', '/api/pulse', a),
     pulseIncident: (id, ok) => call('POST', '/api/pulse/incident', { id, ok: !!ok }),
     onboardMark: (id, done, auto) => call('POST', '/api/onboard', { id, done: !!done, auto: !!auto }),

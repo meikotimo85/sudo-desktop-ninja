@@ -19,22 +19,22 @@ Richtet die Microsoft-Entra-App der Sudo-Zentrale ein: App-Registrierung, Berech
 
 ```powershell
 # Wissen aus SharePoint einrichten und direkt in der Zentrale eintragen
-.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.meikosoft.net -SharePoint "https://firma.sharepoint.com/sites/IT/Freigegebene Dokumente/Anleitungen"
+.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.example.com -SharePoint "https://firma.sharepoint.com/sites/IT/Freigegebene Dokumente/Anleitungen"
 
 # Zusätzlich die Microsoft-Anmeldung an der Verwaltung vorbereiten (Ausgabe für config.php)
-.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.meikosoft.net -Anmeldung -Admins admin@firma.de
+.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.example.com -Anmeldung -Admins admin@firma.de
 
 # Erst schauen, was passieren würde (ändert nichts)
-.\Sudo-Entra-Setup.ps1 -Probelauf -ZentraleUrl https://sudo.meikosoft.net -SharePoint "<Link>"
+.\Sudo-Entra-Setup.ps1 -Probelauf -ZentraleUrl https://sudo.example.com -SharePoint "<Link>"
 
 # Prüfen: Berechtigungen, Freigaben, Ablauf des Geheimnisses (Exit-Code 1 bei Problemen)
-.\Sudo-Entra-Setup.ps1 -Pruefen -ZentraleUrl https://sudo.meikosoft.net -SharePoint "<Link>"
+.\Sudo-Entra-Setup.ps1 -Pruefen -ZentraleUrl https://sudo.example.com -SharePoint "<Link>"
 
 # Geheimnis erneuern (vor Ablauf), in der Zentrale eintragen und alte Geheimnisse löschen
-.\Sudo-Entra-Setup.ps1 -NeuesGeheimnis -AlteGeheimnisseEntfernen -ZentraleUrl https://sudo.meikosoft.net
+.\Sudo-Entra-Setup.ps1 -NeuesGeheimnis -AlteGeheimnisseEntfernen -ZentraleUrl https://sudo.example.com
 
 # Weitere SharePoint-Website freigeben
-.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.meikosoft.net -SharePoint "https://firma.sharepoint.com/sites/Vertrieb/SitePages"
+.\Sudo-Entra-Setup.ps1 -ZentraleUrl https://sudo.example.com -SharePoint "https://firma.sharepoint.com/sites/Vertrieb/SitePages"
 
 # App komplett entfernen (mit Sicherheitsabfrage)
 .\Sudo-Entra-Setup.ps1 -Entfernen

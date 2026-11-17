@@ -69,6 +69,8 @@
         row('Erinnerungen & Notizen', 'Was du selbst eingetragen hast.', el('span', { class: 'v', text: `${nf(d.reminders.reminders)} + ${nf(d.reminders.notes)}` })),
         row('Verlauf „Was hat Sudo gesagt?“', 'Wichtige Sprechblasen zum Nachlesen und Durchsuchen, bei Meldungen mit Ticket- und Gerätekennung. Wie lange Sudo sie aufhebt, bestimmst du unter Einstellungen (Aus bis 1 Jahr, höchstens 2000 Einträge). Bleibt auf dem PC, nur in deinem Windows-Konto.',
           el('span', { class: 'v', text: tr(d.history && d.history.days ? '{n} Einträge · {d} Tage' : 'Aus').replace('{n}', nf((d.history && d.history.n) || 0)).replace('{d}', (d.history && d.history.days) || 0) })),
+        row('Plugins', 'Zusatzwerkzeuge deiner IT oder eigene, jedes mit eigenem Speicher. Plugins haben keinen Internetzugang – was du darin eingibst, bleibt auf diesem PC.',
+          el('span', { class: 'v', text: tr('{n} Plugins').replace('{n}', nf(d.plugins || 0)) })),
         row('Ereignisprotokoll', 'Technische Meldungen für die Fehlersuche (z. B. „Zentrale verbunden“). Bleibt auf dem PC.',
           el('div', { class: 'acts' }, el('span', { class: 'v', text: tr('{n} Zeilen').replace('{n}', nf(d.log.lines)) }), d.log.lines ? btn('Leeren', 'clearLog') : null)),
         row('IT-Lage', d.intel.emails ? 'Eigene E-Mail-Adressen für den Leak-Check stehen in den Einstellungen; gespeichert werden nur Fundstellen.' : 'Letzte Meldungen, damit Sudo nichts doppelt meldet.',

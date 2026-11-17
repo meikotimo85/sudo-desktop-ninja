@@ -65,6 +65,10 @@ final class Db
               field $id NOT NULL DEFAULT 'title', mode $id NOT NULL DEFAULT 'words', pattern $long NOT NULL, action $id NOT NULL, extract $id NOT NULL DEFAULT 'rest',
               target $txt NOT NULL DEFAULT '', dur $id NOT NULL DEFAULT '', ttl INTEGER NULL, link_tpl $txt NOT NULL DEFAULT '', hits INTEGER NOT NULL DEFAULT 0, last_hit BIGINT NULL,
               created BIGINT NOT NULL, updated BIGINT NOT NULL)$eng",
+            // 1.12: Plugins – HTML-Werkzeuge für die Sudos (MySQL: MEDIUMTEXT, weil TEXT nur 64 KB fasst)
+            "CREATE TABLE IF NOT EXISTS plugins (id $id PRIMARY KEY, name $txt NOT NULL, version $txt NOT NULL DEFAULT '', html " . ($this->driver === 'mysql' ? 'MEDIUMTEXT' : 'TEXT') . " NOT NULL,
+              sha $id NOT NULL, size INTEGER NOT NULL DEFAULT 0, w INTEGER NOT NULL DEFAULT 900, h INTEGER NOT NULL DEFAULT 720, target $txt NOT NULL DEFAULT 'all',
+              active INTEGER NOT NULL DEFAULT 1, author $txt, created BIGINT NOT NULL, updated BIGINT NOT NULL)$eng",
             // 1.8: YouTube-Kanäle und Musikwünsche
             "CREATE TABLE IF NOT EXISTS yt_channels (id $auto, channel_id $id NOT NULL UNIQUE, title $txt NOT NULL, handle $txt, target $txt NOT NULL DEFAULT 'all',
               shorts INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, last_check BIGINT NOT NULL DEFAULT 0, last_error $txt, last_video $id, last_published BIGINT NOT NULL DEFAULT 0,
@@ -139,7 +143,9 @@ final class Db
             'quiz_enabled' => 'true', 'quiz_per_week' => '2', 'health_report' => 'true',
             // 1.10: Mitarbeiter-Erlebnis
             'pulse_enabled' => 'true', 'pulse_monthly' => 'false', 'pulse_incident' => 'true', 'pulse_min' => '5',
-            'onboard_enabled' => 'false', 'onboard_days' => '30', 'tips_enabled' => 'true', 'tips_custom' => '[]'];
+            'onboard_enabled' => 'false', 'onboard_days' => '30', 'tips_enabled' => 'true', 'tips_custom' => '[]',
+            // 1.12: eigene Plugins der Mitarbeitenden erlaubt
+            'plugins_user' => 'true'];
         foreach ($defaults as $k => $v) $this->insertIgnore('settings', ['k' => $k, 'v' => $v]);
     }
 

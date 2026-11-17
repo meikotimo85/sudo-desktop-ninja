@@ -7,7 +7,7 @@
     - NinjaOne:  Administration → Bibliothek → Automatisierung → neues Skript (PowerShell, „Ausführen als: System“).
                  Adresse und Code entweder unten eintragen oder als Skriptvariablen „SudoUrl“ und „SudoCode“ anlegen.
     - Intune:    Geräte → Skripts und Wartungen → Plattformskripts. „Mit Anmeldeinformationen des Benutzers“ = Nein.
-    - Von Hand:  PowerShell als Administrator:  .\zentrale-vorgabe.ps1 -Url https://sudo.meikosoft.net -Code SZ-…
+    - Von Hand:  PowerShell als Administrator:  .\zentrale-vorgabe.ps1 -Url https://sudo.example.com -Code SZ-…
 
   Weitere Schalter:
     -Pruefen     nur prüfen (Exit 0 = Vorgabe vorhanden und gültig, 1 = fehlt/falsch) – für NinjaOne-Bedingungen oder Intune-Wartungen
@@ -16,7 +16,7 @@
   Exit-Codes: 0 = OK, 1 = Vorgabe fehlt (nur -Pruefen), 2 = falsche Eingabe, 3 = keine Adminrechte, 4 = Schreiben fehlgeschlagen
 #>
 param(
-  [string]$Url  = 'https://sudo.meikosoft.net',   # Adresse der Zentrale
+  [string]$Url  = 'https://sudo.example.com',   # Adresse der Zentrale
   [string]$Code = 'SZ-XXXX-XXXX-XXXX-XXXX',       # Registrierungscode aus der Verwaltung (mehrfach nutzbar, mit Ablaufdatum)
   [switch]$Pruefen,
   [switch]$Entfernen
@@ -63,6 +63,7 @@ if ($Entfernen) {
 # ---------- Eingaben prüfen ----------
 if ($Code -eq '' -or $Code -like 'SZ-XXXX*') { Write-Output 'FEHLER: Registrierungscode fehlt. Im Skript eintragen oder Skriptvariable "SudoCode" setzen.'; exit 2 }
 if ($Url -notmatch '^https://[^\s/]+') { Write-Output "FEHLER: Adresse muss mit https:// beginnen (ist: '$Url')."; exit 2 }
+if ($Url -match '^https://sudo\.example\.com') { Write-Output 'FEHLER: Adresse der Zentrale fehlt. Im Skript eintragen oder Skriptvariable "SudoUrl" setzen.'; exit 2 }
 
 # ---------- Schreiben ----------
 try {

@@ -22,7 +22,7 @@ Eine kleine, eigenständige Website, die erklärt, was Sudo ist, wie man ihn bed
 
 ## 2. Hochladen
 
-**Variante A – in der Sudo-Zentrale (empfohlen):** den kompletten Ordner als `info/` neben die `index.php` der PHP-Zentrale hochladen (ab Zentrale 1.4.1). Adresse: `https://sudo.meikosoft.net/info/`. Die Startseite der Zentrale zeigt dann zusätzlich „Was ist Sudo?“.
+**Variante A – in der Sudo-Zentrale (empfohlen):** den kompletten Ordner als `info/` neben die `index.php` der PHP-Zentrale hochladen (ab Zentrale 1.4.1). Adresse: `https://sudo.example.com/info/`. Die Startseite der Zentrale zeigt dann zusätzlich „Was ist Sudo?“.
 Bei der Node-Zentrale den Ordner nach `public/info/` legen.
 
 **Variante B – eigener Webspace oder Intranet:** Ordner an beliebiger Stelle hochladen, `index.html` ist die Startseite.
@@ -30,8 +30,8 @@ Bei der Node-Zentrale den Ordner nach `public/info/` legen.
 ## 3. In Intune verlinken
 
 Bei der Win32-App „Sudo“ (Apps → Windows → Sudo → Eigenschaften → App-Informationen):
-- **Informations-URL:** `https://sudo.meikosoft.net/info/`
-- **Datenschutz-URL:** z. B. `https://sudo.meikosoft.net/info/#datenschutz` oder eure Datenschutzerklärung
+- **Informations-URL:** `https://sudo.example.com/info/`
+- **Datenschutz-URL:** z. B. `https://sudo.example.com/info/#datenschutz` oder eure Datenschutzerklärung
 
 Beide Links erscheinen im Unternehmensportal bei der App.
 

@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('centerHost', {
   onTab: cb => ipcRenderer.on('settings-tab', (_e, t) => cb(t)),
   onUpdate: cb => ipcRenderer.on('center-update', (_e, u) => cb(u)),
   onZentrale: cb => ipcRenderer.on('center-zentrale', (_e, z) => cb(z)),
-  onDiag: cb => ipcRenderer.on('center-diag', () => cb())
+  onDiag: cb => ipcRenderer.on('center-diag', () => cb()),
+  onPlugins: cb => ipcRenderer.on('center-plugins', () => cb())
 });

@@ -65,7 +65,11 @@ const { createDex, DexError, tipsClean } = require('./dex');
 const dex = createDex(store, { matches: hub.matches, validTarget, isOnline: id => hub.isOnline(id) });
 dex.seed();
 hub.setDex((d, s) => dex.dexPublic(d, s));
-const opsTry = (reply, fn) => { try { return fn(); } catch (e) { if (e instanceof OpsError || e instanceof RuleError || e instanceof MediaError || e instanceof DexError) return err(reply, e.code, e.message); throw e; } };
+// 1.12: Plugins – HTML-Werkzeuge, die sich die Sudos holen
+const { createPlugins, PluginError } = require('./plugins');
+const plugins = createPlugins(store, { matches: hub.matches, validTarget });
+hub.setPlugins((d, s) => plugins.publicFor(d, s));
+const opsTry = (reply, fn) => { try { return fn(); } catch (e) { if (e instanceof OpsError || e instanceof RuleError || e instanceof MediaError || e instanceof DexError || e instanceof PluginError) return err(reply, e.code, e.message); throw e; } };
 
 app.register(require('@fastify/cookie'), { secret: cfg.cookieSecret });
 app.register(require('@fastify/rate-limit'), { global: true, max: 300, timeWindow: '1 minute' });
@@ -117,6 +121,12 @@ app.get('/api/device', async (req, reply) => {
 });
 
 app.register(async f => { f.get('/api/ws', { websocket: true }, (socket, req) => hub.handle(socket, req)); });
+
+/* ---------- Plugins (1.12): HTML eines Plugins für dieses Gerät ---------- */
+app.get('/api/plugins/:id', { config: { rateLimit: { max: 300, timeWindow: '1 hour', keyGenerator: req => bearer(req).slice(0, 16) || req.ip } } }, async (req, reply) => {
+  const d = deviceFrom(req); if (!d) return err(reply, 401, 'Gerät unbekannt oder gesperrt.');
+  return opsTry(reply, () => plugins.getFor(d, req.params.id));
+});
 
 /* ---------- KI-Proxy: Frage vom Sudo → Claude, mit Budget pro Gerät und Monat ---------- */
 function budgetCheck(dev) {
@@ -539,7 +549,9 @@ app.register(async a => {
       pulse_min: v => /^\d+$/.test(String(v)) && +v >= 3 && +v <= 20,
       onboard_enabled: v => ['true', 'false'].includes(String(v)), onboard_days: v => /^\d+$/.test(String(v)) && +v >= 1 && +v <= 180,
       tips_enabled: v => ['true', 'false'].includes(String(v)),
-      tips_custom: v => typeof v === 'string' && v.length <= 20000 && tipsClean(v) !== null
+      tips_custom: v => typeof v === 'string' && v.length <= 20000 && tipsClean(v) !== null,
+      // 1.12: Plugins
+      plugins_user: v => ['true', 'false'].includes(String(v))
     };
     for (const [k, v] of Object.entries(b)) {
       if (!ok[k]) continue;
@@ -674,6 +686,12 @@ app.register(async a => {
   a.patch('/onboard/:id', async (req, reply) => opsTry(reply, () => { dex.itemPatch(req.params.id, req.body || {}); hub.refreshConfig(); return { ok: true }; }));
   a.delete('/onboard/:id', async (req, reply) => opsTry(reply, () => { dex.itemDelete(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
   a.post('/onboard/device/:id', async (req, reply) => opsTry(reply, () => { dex.showAgain(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
+
+  /* Plugins (1.12) – ein Plugin darf 2 MB haben, als JSON etwas mehr */
+  a.get('/plugins', async () => plugins.admin());
+  a.post('/plugins', { bodyLimit: 3 * 1024 * 1024 }, async (req, reply) => opsTry(reply, () => { const r = plugins.save(req.body || {}, who(req)); hub.refreshConfig(); return r; }));
+  a.patch('/plugins/:id', async (req, reply) => opsTry(reply, () => { plugins.patch(req.params.id, req.body || {}, who(req)); hub.refreshConfig(); return { ok: true }; }));
+  a.delete('/plugins/:id', async (req, reply) => opsTry(reply, () => { plugins.remove(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
 
   a.get('/audit', async () => store.all('SELECT * FROM audit ORDER BY id DESC LIMIT 200'));
 }, { prefix: '/admin/api' });

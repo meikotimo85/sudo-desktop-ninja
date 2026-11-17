@@ -93,7 +93,7 @@
   }
 
   /* ---------- Rahmen ---------- */
-  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
+  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['plugins', 'Plugins'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
   function shell(content) {
     const nav = el('nav', { class: 'side', 'aria-label': 'Bereiche' },
       el('p', { class: 'brand' }, el('img', { src: BASE + '/icon.png', alt: '' }), el('span', {}, el('span', { text: 'sudo' }), ' zentrale')),
@@ -840,6 +840,71 @@
         el('div', { class: 'grid2' },
           card('Nach Gerät', u.perDevice.length ? el('table', { class: 'tbl' }, el('tbody', {}, u.perDevice.map(d => el('tr', {}, el('td', { text: d.name }), el('td', { class: 'num', text: `${d.q} Fragen` }), el('td', { class: 'num', text: usd(d.usd) }))))) : el('p', { class: 'empty', text: 'Noch keine Fragen.' })),
           card('Nach Modell', u.perModel.length ? el('table', { class: 'tbl' }, el('tbody', {}, u.perModel.map(d => el('tr', {}, el('td', { text: d.model === 'sonnet' ? 'Schlau (Sonnet)' : 'Schnell (Haiku)' }), el('td', { class: 'num', text: `${d.q} Fragen` }), el('td', { class: 'num', text: usd(d.usd) }))))) : el('p', { class: 'empty', text: 'Noch keine Fragen.' }))));
+    },
+
+    // 1.12: Plugins – kleine HTML-Werkzeuge, die sich die Sudos holen und abgeschottet öffnen
+    async plugins() {
+      const d = await api('GET', '/admin/api/plugins');
+      const devs = await api('GET', '/admin/api/devices');
+      const groups = [...new Set(devs.flatMap(x => String(x.groups || '').split(',').map(g => g.trim()).filter(Boolean)))].sort();
+      const people = [...new Set(devs.map(x => x.upn).filter(Boolean))].sort();
+      const tSel = cur => el('select', { 'aria-label': 'Für wen' }, el('option', { value: 'all', text: `Alle Sudos (${devs.length})`, selected: cur === 'all' }),
+        ...groups.map(g => el('option', { value: 'group:' + g, text: `Gruppe: ${g}`, selected: cur === 'group:' + g })),
+        ...people.map(u => el('option', { value: 'user:' + u, text: `Person: ${u}`, selected: cur === 'user:' + u })),
+        cur && cur !== 'all' && !groups.some(g => cur === 'group:' + g) && !people.some(u => cur === 'user:' + u) ? el('option', { value: cur, text: cur, selected: true }) : null);
+      // Angaben aus dem HTML lesen – gleiche Regeln wie im Sudo (plugins.js)
+      const meta = (html, n) => { const m = html.match(new RegExp(`<meta\\s+name=["']sudo-plugin-${n}["']\\s+content=["']([^"']*)["']`, 'i')); return m ? m[1].trim() : ''; };
+      const slug = s => String(s || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+      let html = '';
+      const file = el('input', { type: 'file', accept: '.html,.htm,text/html' });
+      const fName = el('input', { type: 'text', maxlength: 60, placeholder: 'wird aus der Datei gelesen' });
+      const fId = el('input', { type: 'text', maxlength: 40, placeholder: 'z. B. naming-tool' });
+      const fVer = el('input', { type: 'text', maxlength: 20, placeholder: 'z. B. 1.0' });
+      const fTgt = tSel('all');
+      const info = el('p', { class: 'muted' });
+      let size = [0, 0];
+      file.addEventListener('change', async () => {
+        html = ''; info.textContent = '';
+        const f = file.files[0]; if (!f) return;
+        if (f.size > 2097152) { toast('Das Plugin ist größer als 2 MB.', true); file.value = ''; return; }
+        html = (await f.text()).replace(/^﻿/, '');
+        const title = (html.match(/<title[^>]*>([^<]{1,120})<\/title>/i) || [])[1] || '';
+        fName.value = (meta(html, 'name') || title.trim() || f.name.replace(/\.html?$/i, '')).replace(/\s+/g, ' ').slice(0, 60);
+        fId.value = slug(meta(html, 'id') || fName.value);
+        fVer.value = meta(html, 'version').slice(0, 20);
+        size = (meta(html, 'size').match(/^(\d{3,4})\s*x\s*(\d{3,4})$/i) || [0, 0, 0]).slice(1).map(Number);
+        const known = d.items.find(p => p.id === fId.value);
+        info.textContent = `${Math.round(f.size / 1024)} KB` + (known ? ` · ersetzt „${known.name}“ ${known.version || ''}` : '');
+      });
+      const kb = n => n >= 1048576 ? (n / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+      const userOn = el('select', {}, el('option', { value: 'true', text: 'erlaubt', selected: d.user }), el('option', { value: 'false', text: 'nicht erlaubt', selected: !d.user }));
+      return el('div', {},
+        el('h2', { text: 'Plugins' }),
+        el('p', { class: 'sub', text: 'Kleine Werkzeuge als einzelne HTML-Datei, z. B. ein Namens-Generator für eure Kunden. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Mit gleicher Kennung hochladen ersetzt die alte Fassung.' }),
+        card(`Plugins (${d.items.length})`, d.items.length ? el('div', { class: 'scroll' }, el('table', { class: 'tbl' },
+          el('thead', {}, el('tr', {}, ...['Plugin', 'Für wen', 'Größe', 'Geändert', ''].map(h => el('th', { text: h })))),
+          el('tbody', {}, d.items.map(p => { const t = tSel(p.target); t.addEventListener('change', async () => { await api('PATCH', '/admin/api/plugins/' + p.id, { target: t.value }); toast('Gespeichert.'); });
+            return el('tr', { class: p.active ? '' : 'off' },
+              el('td', {}, el('b', { text: p.name }), el('div', { class: 'muted', text: p.id + (p.version ? ' · Version ' + p.version : '') })),
+              el('td', {}, t),
+              el('td', { class: 'num', text: kb(p.size) }),
+              el('td', { class: 'muted', text: `${fmtDate(p.updated)}${p.author ? ' · ' + p.author : ''}` }),
+              el('td', {}, el('div', { class: 'row' }, action(p.active ? 'aktiv' : 'pausiert', async () => { await api('PATCH', '/admin/api/plugins/' + p.id, { active: !p.active }); go('plugins'); }, 'small'),
+                action('Entfernen', async () => { if (!confirm(`„${p.name}“ entfernen? Die Sudos löschen es beim nächsten Abgleich.`)) return; await api('DELETE', '/admin/api/plugins/' + p.id); go('plugins'); }, 'small danger')))); }))))
+          : el('p', { class: 'empty', text: 'Noch kein Plugin. Lade unten eine HTML-Datei hoch.' }),
+          el('div', { class: 'qform' }, el('h4', { text: 'Plugin hochladen' }),
+            el('label', { class: 'f' }, 'HTML-Datei (höchstens 2 MB)', file), info,
+            el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Name', fName), el('label', { class: 'f' }, 'Kennung', fId)),
+            el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Version', fVer), el('label', { class: 'f' }, 'Für wen', fTgt)),
+            el('div', { class: 'row' }, action('Hochladen', async () => {
+              if (!html) throw new Error('Bitte zuerst eine HTML-Datei wählen.');
+              const r = await api('POST', '/admin/api/plugins', { id: fId.value.trim(), name: fName.value.trim(), version: fVer.value.trim(), w: size[0], h: size[1], target: fTgt.value, html });
+              toast(r.updated ? `„${fName.value}“ ersetzt.` : `„${fName.value}“ hochgeladen.`); go('plugins');
+            }, 'primary')))),
+        card('Eigene Plugins der Mitarbeitenden',
+          el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Selbst hinzufügen im Sudo', userOn)),
+          el('p', { class: 'muted', text: 'Nicht erlaubt: Die Sudos zeigen nur die Plugins von hier; eigene bleiben auf dem PC liegen, sind aber ausgeblendet.' }),
+          el('div', { class: 'row', style: 'margin-top:12px' }, action('Speichern', async () => { await api('PUT', '/admin/api/settings', { plugins_user: userOn.value }); toast('Gespeichert.'); }, 'primary'))));
     },
 
     async audit() {

@@ -4,7 +4,7 @@
 
 Sudo ist ein kleiner Pixel-Ninja, der auf dem Windows-Desktop lebt. Er läuft über die Taskleiste, erinnert an Pausen und hilft bei Alltagsproblemen am PC. Über die **Sudo-Zentrale** erreicht die IT damit alle Mitarbeitenden: Meldungen, Störungen, Neustart-Aufforderungen, Quiz und Wissen aus dem Intranet kommen dort an, wo sie gesehen werden.
 
-Stand: Client 1.11.0, Zentrale 1.10.0.
+Stand: Client 1.12.1, Zentrale 1.12.0.
 
 ## Was Sudo kann
 
@@ -21,6 +21,7 @@ Stand: Client 1.11.0, Zentrale 1.10.0.
 - Störungen mit Betroffenen-Zählung und der Rückfrage „Läuft es wieder?“
 - Ereignis-API für Skripte und Monitoring, mit Regeln, die Tickets in verständliche Meldungen übersetzen
 - Stimmungsbarometer ohne Gerätebezug, Start-Checkliste für neue Geräte
+- Plugins: eigene kleine Werkzeuge als HTML-Datei an alle oder einzelne Gruppen verteilen, abgeschottet ohne Internet
 - Verwaltung mit Anmeldung über Microsoft Entra ID, Protokoll aller Aktionen
 
 ## Aufbau

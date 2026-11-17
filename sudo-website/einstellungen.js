@@ -7,5 +7,5 @@ window.SUDO_INFO = {
   portal: '',           // z. B. Link zum Ticket-Portal: 'https://support.firma.de'
   impressum: '',        // Link zum Impressum, z. B. 'https://www.firma.de/impressum'
   datenschutz: '',      // Link zur Datenschutzerklärung
-  version: '1.11.0'      // angezeigte Sudo-Version
+  version: '1.12.1'      // angezeigte Sudo-Version
 };

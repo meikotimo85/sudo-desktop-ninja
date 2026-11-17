@@ -24,6 +24,7 @@ require $base . '/app/rules.php';
 require $base . '/app/media.php';
 require $base . '/app/kb.php';
 require $base . '/app/dex.php';
+require $base . '/app/plugins.php';
 
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
@@ -138,7 +139,14 @@ if ($route === 'POST /api/poll') {
     music_maybe_watch_later($db, $cfg);                  // 1.8.1: gesperrte Musikwünsche überspringen
     kb_maybe_sync_later($db, $cfg);                      // 1.9: SharePoint-Anleitungen abgleichen
     $s = $db->settings();
-    json_out(['device' => ['id' => $d['id'], 'name' => $d['name'], 'groups' => groups_of($d)], 'ai' => ai_public($s), 'visits' => visits_public($s, $db, $d), 'health' => health_public($s), 'quiz' => quiz_public($s, $db), 'ops' => ops_public($db, $d, $s), 'media' => media_public($db, $d, $s), 'kb' => kb_public($s, $db), 'dex' => dex_public($db, $d, $s), 'events' => $events, 'pollSec' => $cfg['poll_seconds']]);
+    json_out(['device' => ['id' => $d['id'], 'name' => $d['name'], 'groups' => groups_of($d)], 'ai' => ai_public($s), 'visits' => visits_public($s, $db, $d), 'health' => health_public($s), 'quiz' => quiz_public($s, $db), 'ops' => ops_public($db, $d, $s), 'media' => media_public($db, $d, $s), 'kb' => kb_public($s, $db), 'dex' => dex_public($db, $d, $s), 'plugins' => plugins_public($db, $d, $s), 'events' => $events, 'pollSec' => $cfg['poll_seconds']]);
+}
+
+/* ---------- Plugins (1.12): HTML eines Plugins für dieses Gerät ---------- */
+if ($method === 'GET' && preg_match('#^/api/plugins/([a-z0-9-]{2,40})$#', $path, $mm)) {
+    $d = device_from($db) ?? fail(401, 'Gerät unbekannt oder gesperrt.');
+    if (!$db->limit('plug:' . $d['id'], 300, 3600)) fail(429, 'Zu viele Abrufe – kurz warten.');
+    json_out(plugin_for($db, $d, $mm[1]));
 }
 
 /* ---------- Security-Quiz (1.5) ---------- */

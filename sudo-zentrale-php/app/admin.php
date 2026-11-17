@@ -165,6 +165,8 @@ switch (true) {
             'onboard_days' => fn($v) => ctype_digit((string) $v) && $v >= 1 && $v <= 180,
             'tips_enabled' => fn($v) => in_array((string) $v, ['true', 'false'], true),
             'tips_custom' => fn($v) => is_string($v) && strlen($v) <= 20000 && tips_clean($v) !== null,
+            // 1.12: Plugins
+            'plugins_user' => fn($v) => in_array((string) $v, ['true', 'false'], true),
         ];
         foreach ($b as $k => $v) {
             if (!isset($check[$k])) continue;
@@ -385,6 +387,17 @@ switch (true) {
         $days = max(1, min(180, (int) ($db->settings()['onboard_days'] ?? 30)));
         $db->run('UPDATE devices SET onboard_until = ? WHERE id = ?', [now_ms() + $days * 86400000, $d['id']]);
         $db->audit($who, 'onboard_show', $d['name']);
+        json_out(['ok' => true]);
+
+    /* Plugins (1.12) */
+    case $method === 'GET' && $sub === '/plugins':
+        json_out(plugins_admin($db));
+    case $method === 'POST' && $sub === '/plugins':
+        // Eigenes Lesen: body() liest höchstens 256 KB, ein Plugin darf 2 MB haben (als JSON etwas mehr)
+        $pb = json_decode(file_get_contents('php://input', false, null, 0, 3 * 1024 * 1024) ?: '', true);
+        json_out(plugin_save($db, is_array($pb) ? $pb : [], $who));
+    case preg_match('#^/plugins/([a-z0-9-]{2,40})$#', $sub, $mm) === 1 && in_array($method, ['PATCH', 'DELETE'], true):
+        if ($method === 'DELETE') plugin_delete($db, $mm[1], $who); else plugin_patch($db, $mm[1], $b, $who);
         json_out(['ok' => true]);
 
     case $method === 'GET' && $sub === '/audit':

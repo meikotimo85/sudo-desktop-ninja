@@ -1,8 +1,8 @@
-# Sudo-Zentrale 1.9.1 – Node.js-Version (VPS mit Docker)
+# Sudo-Zentrale 1.12.0 – Node.js-Version (VPS mit Docker)
 
 > Kein VPS? Die **PHP-Version** (`sudo-zentrale-php`) läuft auf normalem Webspace und hat dieselbe Verwaltung.
 
-Der kleine Server für alle Sudos einer Firma, z. B. unter **https://sudo.meikosoft.net**.
+Der kleine Server für alle Sudos einer Firma, z. B. unter **https://sudo.example.com**.
 
 - **Meldungen** an alle Sudos, an Gruppen oder einzelne Geräte – sofort per WebSocket, Offline-Geräte bekommen sie beim nächsten Verbinden.
 - **Ereignis-API** für Skripte (Backup-Prüfung, Monitoring, Deploy) mit eigenen API-Schlüsseln. Ersetzt das PHP-Relay.
@@ -15,7 +15,7 @@ Technik: Node.js 24 (läuft ab 22.13), Fastify, WebSockets, SQLite (in Node eing
 
 ## 1. Installation auf dem VPS (Docker + aaPanel)
 
-1. **DNS:** `sudo.meikosoft.net` als A-Record auf den VPS zeigen lassen.
+1. **DNS:** `sudo.example.com` als A-Record auf den VPS zeigen lassen.
 2. Ordner hochladen, z. B. nach `/opt/sudo-zentrale`, dann per SSH:
    ```bash
    cd /opt/sudo-zentrale
@@ -25,7 +25,7 @@ Technik: Node.js 24 (läuft ab 22.13), Fastify, WebSockets, SQLite (in Node eing
    docker compose logs -f                 # „Sudo-Zentrale 1.3.0 läuft …“
    ```
    Die Zentrale lauscht nur lokal auf `127.0.0.1:8080`.
-3. **aaPanel:** Website `sudo.meikosoft.net` anlegen → **SSL** (Let's Encrypt) aktivieren, „HTTPS erzwingen“ an → **Reverse Proxy** auf `http://127.0.0.1:8080`.
+3. **aaPanel:** Website `sudo.example.com` anlegen → **SSL** (Let's Encrypt) aktivieren, „HTTPS erzwingen“ an → **Reverse Proxy** auf `http://127.0.0.1:8080`.
    Wichtig sind WebSockets und das Streaming der KI-Antworten. In der Proxy-Konfiguration (Konfigurationsdatei der Seite) sollte stehen:
    ```nginx
    location / {
@@ -41,7 +41,7 @@ Technik: Node.js 24 (läuft ab 22.13), Fastify, WebSockets, SQLite (in Node eing
        proxy_buffering off;           # KI-Antworten sofort durchreichen
    }
    ```
-4. Test: `https://sudo.meikosoft.net/healthz` zeigt `{"ok":true,…}`, `https://sudo.meikosoft.net/admin/` die Anmeldung.
+4. Test: `https://sudo.example.com/healthz` zeigt `{"ok":true,…}`, `https://sudo.example.com/admin/` die Anmeldung.
 
 Ohne Docker geht es auch: Node.js 22.13 oder neuer, `npm ci --omit=dev`, Umgebungsvariablen setzen, `npm start` (z. B. mit PM2).
 
@@ -49,7 +49,7 @@ Ohne Docker geht es auch: Node.js 22.13 oder neuer, `npm ci --omit=dev`, Umgebun
 
 | Variable | Bedeutung |
 |---|---|
-| `PUBLIC_URL` | Öffentliche Adresse, z. B. `https://sudo.meikosoft.net` |
+| `PUBLIC_URL` | Öffentliche Adresse, z. B. `https://sudo.example.com` |
 | `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` | Anmeldung mit Microsoft (siehe 3.) |
 | `GRAPH_API`, `GRAPH_LOGIN` | Nur für Tests: andere Adressen für Microsoft Graph (Standard: die echten) |
 | `ADMIN_USERS` | Wer in die Verwaltung darf, z. B. `admin@firma.de, kollege@firma.de` |
@@ -69,7 +69,7 @@ Ausgabe (`ADMIN_PASSWORD=scrypt$…`) in die `.env` kopieren, dann `docker compo
 
 1. **Entra Admin Center → Anwendungen → App-Registrierungen → Neue Registrierung**
    - Name: `Sudo-Zentrale`, Kontotyp: *Nur Konten in diesem Organisationsverzeichnis*
-   - Umleitungs-URI: Plattform **Web**, `https://sudo.meikosoft.net/auth/callback`
+   - Umleitungs-URI: Plattform **Web**, `https://sudo.example.com/auth/callback`
 2. **Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel** – den *Wert* sofort kopieren (`ENTRA_CLIENT_SECRET`).
 3. Auf der Übersichtsseite **Verzeichnis-ID (Mandant)** → `ENTRA_TENANT_ID`, **Anwendungs-ID (Client)** → `ENTRA_CLIENT_ID`.
 4. Berechtigungen: Standard (`openid`, `profile`, `email`) genügt, kein Admin-Consent nötig.
@@ -117,6 +117,8 @@ Einrichtung:
 
 **Regeln (ab 1.7):** Unter **Regeln** ordnet die Zentrale Meldungen der Schnittstelle selbst ein. So wird z. B. aus dem Ticket „Datensicherung Failed Muster GmbH“ ein Alarm „Backup fehlgeschlagen – Muster GmbH“ mit Klick zum Ticket. Drei Regeln sind dabei (Backup, Server nicht erreichbar, Zertifikat). Mit dem Testfeld prüfst du jeden Titel, ohne etwas zu senden. Einzelheiten stehen in API-ANLEITUNG.md, Abschnitt 3a.
 
+**Plugins (ab 1.12):** Unter **Plugins** lädst du kleine Werkzeuge als einzelne HTML-Datei hoch (höchstens 2 MB) und weist sie allen, einer Gruppe oder einer Person zu. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Gleiche Kennung ersetzt die alte Fassung, „pausiert“ blendet ein Plugin aus, „Entfernen“ löscht es auch auf den PCs. Mit dem Schalter „Eigene Plugins der Mitarbeitenden“ legst du fest, ob jeder zusätzlich eigene hinzufügen darf. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
+
 **Mitarbeiter-Erlebnis (ab 1.10):** Im Bereich **Mitarbeiter-Erlebnis** stellst du kurze **Stimmungsfragen** (1–5 Sterne, an alle oder eine Gruppe, mit Laufzeit) und schaltest optional eine **Monatsfrage** zur Zufriedenheit ein. Antworten speichert die Zentrale ohne Gerät – nur Sterne, Ampel des Gerätezustands und Tag; ausgewertet wird erst ab 5 Antworten (einstellbar 3–20), dann auch getrennt nach Gerätezustand. Nach einer beendeten Störung fragt Sudo die Betroffenen **„Läuft es wieder?“** – wer „Geht noch nicht“ antwortet, steht mit Namen in der Liste und im Protokoll. Die **Start-Checkliste** (mitgeliefert: MFA, OneDrive, Ordnersicherung, Teams, Signatur, Drucker, Gerätezustand, Quiz – eigene Punkte möglich) ist zunächst aus; eingeschaltet zeigen neue Sudos sie in den ersten 30 Tagen, du siehst den Stand je Gerät und kannst sie einem Gerät „erneut zeigen“. Außerdem: **eigene Tipps** je Programm, die Sudo im passenden Moment zeigt. Die neuen Tabellen legt die Zentrale beim ersten Aufruf selbst an.
 
 **Störungen & Neustarts (ab 1.6):** Unter **Störungen & Neustarts** meldest du Störungen (Info, Störung, Ausfall – an alle, eine Gruppe oder eine Person). Sie stehen bei den Sudos, bis du sie beendest; Kollegen melden sich mit „Ich bin auch betroffen“, du siehst Anzahl und Geräte. Beim Beenden geht eine Entwarnung raus. Störungen lassen sich auch per Schnittstelle öffnen und beenden (siehe API-ANLEITUNG.md, z. B. aus dem Monitoring). **Neustart-Kampagnen** bitten um einen Neustart bis zu einer Frist – für alle oder nur Geräte mit ausstehendem Neustart/langer Laufzeit – und zeigen pro Gerät: offen, verschoben (wie oft), erledigt. Außerdem: anonyme Nutzung der **Selbsthilfe** (welches Werkzeug hilft wie oft) und der **Hilfe-Kontakt** (Telefon, Mail, Portal), den die Sudos unter „Hat nicht geholfen?“ anzeigen. Die neuen Tabellen legt die Zentrale beim ersten Aufruf selbst an.
@@ -126,7 +128,7 @@ Einrichtung:
 ## 5. Ereignisse aus Skripten
 
 ```bash
-curl -X POST https://sudo.meikosoft.net/api/events \
+curl -X POST https://sudo.example.com/api/events \
   -H "Authorization: Bearer szk_…" -H "Content-Type: application/json" \
   -d '{"type":"backup_failed","kunde":"Muster GmbH","target":"group:IT"}'
 ```

@@ -239,8 +239,28 @@ function send(ch, data) {
 function layoutInfo() {
   const b = display.bounds, wa = display.workArea;
   // Boden = Oberkante der Taskleiste (wenn sie unten liegt), sonst Bildschirmunterkante
-  const floor = wa.y + wa.height < b.y + b.height ? wa.y + wa.height - b.y : b.height;
+  let floor = wa.y + wa.height < b.y + b.height ? wa.y + wa.height - b.y : b.height;
+  if (process.platform === 'linux') floor = Math.min(floor, linuxFloor(b));
   return { width: b.width, height: b.height, floor };
+}
+// Linux: Electron kennt die Leiste nur auf dem Hauptmonitor → Oberkante der Leiste je Monitor selbst bestimmen
+let linuxAreas = { at: 0, v: null };
+function linuxFloor(b) {
+  if (typeof win32.workAreas !== 'function') return b.height;
+  if (Date.now() - linuxAreas.at > 5000) { try { linuxAreas = { at: Date.now(), v: win32.workAreas() }; } catch { linuxAreas = { at: Date.now(), v: null }; } }
+  const a = linuxAreas.v;
+  if (!a) return b.height;
+  const f = display.scaleFactor || 1;
+  const r = a.list.map(q => ({ x: q.x / f, y: q.y / f, w: q.w / f, h: q.h / f }));
+  const overlapX = q => Math.min(q.x + q.w, b.x + b.width) - Math.max(q.x, b.x);
+  if (a.kind === 'areas') {
+    // die freie Fläche, die am meisten mit diesem Monitor überlappt
+    const best = r.filter(q => overlapX(q) > 0 && q.y < b.y + b.height && q.y + q.h > b.y).sort((p, q) => overlapX(q) - overlapX(p))[0];
+    return best && best.y + best.h < b.y + b.height ? Math.max(b.height * 0.5, best.y + best.h - b.y) : b.height;
+  }
+  // Leisten unten auf diesem Monitor: flach, breit genug und mit Unterkante am Monitorrand
+  const low = r.filter(q => q.h < 200 && overlapX(q) > b.width * 0.3 && Math.abs(q.y + q.h - (b.y + b.height)) <= 4);
+  return low.length ? Math.max(b.height * 0.5, Math.min(...low.map(q => q.y)) - b.y) : b.height;
 }
 let currentDisplayId = null;   // Bildschirm, auf dem Sudo gerade ist (kann beim Wandern wechseln)
 function chosenDisplay() {
@@ -284,7 +304,7 @@ ipcMain.on('drag-out', (_e, m) => {
   // Position aus dem Zieh-Ereignis: Fensterecke + Mausposition im Fenster (zuverlässiger als die Systemabfrage)
   const wb = win.getBounds();
   const p = m && Number.isFinite(m.x) && Number.isFinite(m.y) && Math.abs(m.x) < 20000 && Math.abs(m.y) < 20000
-    ? { x: Math.round(wb.x + m.x), y: Math.round(wb.y + m.y) } : screen.getCursorScreenPoint();
+    ? { x: Math.round(wb.x + m.x), y: Math.round(wb.y + m.y) } : cursorPoint();
   const d = screen.getAllDisplays().find(x => p.x >= x.bounds.x && p.x < x.bounds.x + x.bounds.width && p.y >= x.bounds.y && p.y < x.bounds.y + x.bounds.height);
   if (!d || d.id === display.id) return;
   lastDragOut = Date.now();
@@ -305,7 +325,7 @@ function displayMenu() {
 }
 // "Sudo rufen" holt ihn auf den Bildschirm mit dem Mauszeiger
 function summon() {
-  const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const d = screen.getDisplayNearestPoint(cursorPoint());
   if (display && d.id !== display.id) { currentDisplayId = d.id; placeWindow(); lastPlatforms = ''; sendNeighbors(); }
   send('summon');
 }
@@ -683,7 +703,7 @@ function appPoll() {
       lastAppTag = tag;
       // Fenster-Kennung und Mausposition (relativ zum Overlay), damit Sudo z. B. zum Video läuft und mitguckt
       let cursor = null;
-      try { const c = screen.getCursorScreenPoint(), b = win.getBounds(); if (c.x >= b.x && c.x <= b.x + b.width) cursor = { x: c.x - b.x, y: c.y - b.y }; } catch { /* egal */ }
+      try { const c = cursorPoint(), b = win.getBounds(); if (c.x >= b.x && c.x <= b.x + b.width) cursor = { x: c.x - b.x, y: c.y - b.y }; } catch { /* egal */ }
       send('app', { tag, win: fg.id, cursor, browser: BROWSERS.test(fg.exe) });
     }
   } catch (e) { console.error('[app]', e.message); }
@@ -760,7 +780,7 @@ let toolsWin = null, quickWin = null, reminders = null, watch = null;
 const SHORTCUTS = { tools: 'Control+Alt+K', quick: 'Control+Alt+N', ask: 'Control+Alt+S' };
 const shortcutOk = {};
 function smallWindow(file, preload, w, h, title) {
-  const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+  const d = screen.getDisplayNearestPoint(cursorPoint()).workArea;
   const bw = new BrowserWindow({
     width: w, height: h, x: Math.round(d.x + (d.width - w) / 2), y: Math.round(d.y + (d.height - h) / 3),
     minWidth: Math.min(w, 460), minHeight: 360, autoHideMenuBar: true, title, backgroundColor: '#12161f', show: false,
@@ -1819,9 +1839,16 @@ function setIgnore(v, force = false) {
   ignoring = v; lastIgnoreSet = Date.now();
   win.setIgnoreMouseEvents(v, { forward: true });
 }
+// Linux: Electron kennt die Maus nur über eigenen Fenstern → Position direkt vom X-Server, physische Pixel in DIP umrechnen
+function cursorPoint() {
+  const c = typeof win32.cursor === 'function' ? win32.cursor() : null;
+  if (!c) return screen.getCursorScreenPoint();
+  const f = (display && display.scaleFactor) || 1;
+  return { x: Math.round(c.x / f), y: Math.round(c.y / f) };
+}
 function checkMouse() {
   if (!win || win.isDestroyed() || !display || hiddenForFullscreen) return;
-  const p = screen.getCursorScreenPoint(), b = display.bounds;
+  const p = cursorPoint(), b = display.bounds;
   const x = p.x - b.x, y = p.y - b.y, pad = 6;
   const over = hit.hold || hit.boxes.some(([l, t, r, bt]) => x >= l - pad && x <= r + pad && y >= t - pad && y <= bt + pad);
   // alle 5 Sekunden den Zustand neu setzen, falls Windows ihn verloren hat

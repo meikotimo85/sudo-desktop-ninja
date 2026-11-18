@@ -3,6 +3,9 @@ Unveröffentlicht – Linux-Version (Vorschau)
   • Fensterkanten, Vollbild-Erkennung, Programm-Kommentare und Meeting-Erkennung über X11 (neues Modul x11.js); unter Wayland läuft Sudo über XWayland
   • Ninja-Leiste mit Linux-Programmen (Terminal, Root-Terminal über pkexec, Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt)
   • Autostart über ~/.config/autostart, Zentrale-Vorgabe aus /etc/sudo-desktop/zentrale.json, Neustart-Kampagnen über shutdown -r +2
+  • Behoben: Sudo ließ sich nicht anklicken oder verschieben (Electron kennt die Mausposition unter Linux nur über eigenen Fenstern – Sudo fragt sie jetzt direkt beim X-Server ab)
+  • Behoben: Auf weiteren Monitoren stand Sudo vor statt auf der Leiste (Arbeitsfläche je Monitor aus _GTK_WORKAREAS bzw. den Leisten-Fenstern)
+  • Behoben: Beim Autostart ohne offenes Fenster blieb die Fenstererkennung für die ganze Sitzung aus
 
 1.13.0 – Plugins per Doppelklick: Endung .sudoplugin (Zentrale 1.13.0)
   • Dateien mit der Endung .sudoplugin haben im Explorer ein eigenes Pixel-Symbol (Blatt mit violettem Puzzleteil). Ein Doppelklick öffnet Sudo und fragt, ob das Plugin hinzugefügt werden soll – „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“; läuft Sudo schon, kommt die Frage dort

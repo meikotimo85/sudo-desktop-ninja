@@ -9,6 +9,7 @@ const fs = require('fs');
 
 const isLinux = process.platform === 'linux';
 let api = null, dpy = null, root = 0, keepHandler = null;
+let queryPointer = null;              // bleibt auch ohne Fenstermanager nutzbar (Maus für das Durchklicken)
 const atoms = {};
 const ANY = 0;                        // AnyPropertyType
 
@@ -26,9 +27,11 @@ if (isLinux && process.env.DISPLAY) {
       XGetGeometry: x.func('int XGetGeometry(void *dpy, unsigned long d, _Out_ unsigned long *root, _Out_ int *x, _Out_ int *y, _Out_ unsigned int *w, _Out_ unsigned int *h, _Out_ unsigned int *border, _Out_ unsigned int *depth)'),
       XTranslateCoordinates: x.func('int XTranslateCoordinates(void *dpy, unsigned long src, unsigned long dest, int sx, int sy, _Out_ int *dx, _Out_ int *dy, _Out_ unsigned long *child)'),
       XFree: x.func('int XFree(void *data)'),
+      XQueryPointer: x.func('int XQueryPointer(void *dpy, unsigned long w, _Out_ unsigned long *root, _Out_ unsigned long *child, _Out_ int *rx, _Out_ int *ry, _Out_ int *wx, _Out_ int *wy, _Out_ unsigned int *mask)'),
       XSetErrorHandler: x.func('void *XSetErrorHandler(XErrorHandler *handler)')
     };
     // Ohne eigenen Fehler-Handler beendet Xlib den ganzen Prozess, wenn ein Fenster zwischen Liste und Abfrage verschwindet
+    queryPointer = api.XQueryPointer;
     keepHandler = koffi.register(() => 0, koffi.pointer(XErrorHandler));
     api.XSetErrorHandler(keepHandler);
     dpy = api.XOpenDisplay(null);
@@ -36,14 +39,13 @@ if (isLinux && process.env.DISPLAY) {
     root = api.XDefaultRootWindow(dpy);
     for (const n of ['_NET_CLIENT_LIST_STACKING', '_NET_CLIENT_LIST', '_NET_ACTIVE_WINDOW', '_NET_WM_STATE', '_NET_WM_STATE_HIDDEN',
       '_NET_WM_WINDOW_TYPE', '_NET_WM_WINDOW_TYPE_NORMAL', '_NET_WM_WINDOW_TYPE_DIALOG', '_NET_WM_DESKTOP', '_NET_CURRENT_DESKTOP',
-      '_NET_FRAME_EXTENTS', '_GTK_FRAME_EXTENTS', '_NET_WM_NAME', 'WM_NAME', 'UTF8_STRING', '_NET_WM_PID', 'WM_CLASS']) {
+      '_NET_FRAME_EXTENTS', '_GTK_FRAME_EXTENTS', '_NET_WM_NAME', 'WM_NAME', 'UTF8_STRING', '_NET_WM_PID', 'WM_CLASS',
+      '_NET_WM_WINDOW_TYPE_DOCK', '_NET_SUPPORTED']) {
       atoms[n] = api.XInternAtom(dpy, n, 0);
     }
-    // Ohne Fenstermanager nach EWMH (z. B. nacktes Xvfb) gibt es keine Fensterliste – dann wie „nicht verfügbar“
-    if (!prop(root, '_NET_CLIENT_LIST', 'long', 4096) && !prop(root, '_NET_CLIENT_LIST_STACKING', 'long', 4096)) {
-      console.error('[x11] Fenstermanager ohne Fensterliste – Fensterkanten aus');
-      api = null;
-    }
+    // Nicht abschalten, wenn die Fensterliste (noch) leer ist: Beim Autostart nach der Anmeldung ist oft kein Fenster offen
+    // und der Fenstermanager startet evtl. erst danach. Ohne EWMH-Fenstermanager liefern die Abfragen einfach leere Listen.
+    if (!prop(root, '_NET_SUPPORTED', 'long', 1)) console.error('[x11] noch kein EWMH-Fenstermanager – Fensterkanten erscheinen, sobald er läuft');
   } catch (err) {
     console.error('[x11] libX11 konnte nicht geladen werden:', err.message);
     api = null;
@@ -203,6 +205,44 @@ function windowInfos() {
   return out;
 }
 
+/**
+ * Mausposition in physischen Pixeln direkt vom X-Server.
+ * Electrons screen.getCursorScreenPoint() liefert unter Linux nur die letzte Position, die eines seiner
+ * Fenster gesehen hat – über einem durchklickbaren Overlay bleibt sie stehen und Sudo wäre nie anklickbar.
+ */
+function cursor() {
+  if (!dpy || !queryPointer) return null;
+  const r = [0], c = [0], x = [0], y = [0], wx = [0], wy = [0], m = [0];
+  try { return queryPointer(dpy, root, r, c, x, y, wx, wy, m) ? { x: x[0], y: y[0] } : null; } catch { return null; }
+}
+
+/**
+ * Freie Fläche je Monitor (ohne Leisten), physische Pixel: [{x, y, w, h}] oder null.
+ * Electron kennt unter X11 nur die Arbeitsfläche des Hauptmonitors – auf weiteren Monitoren stünde Sudo sonst vor der Leiste.
+ * 1. GNOME, Cinnamon, MATE, Budgie: _GTK_WORKAREAS_D<Arbeitsfläche> am Wurzelfenster (eine Fläche je Monitor)
+ * 2. KDE, Xfce & Co.: Leisten-Fenster (Typ DOCK) mit ihrer Reservierung am Bildschirmrand
+ */
+function workAreas() {
+  if (!api) return null;
+  const cur = currentDesktop() || 0;
+  const name = '_GTK_WORKAREAS_D' + cur;
+  if (!atoms[name]) atoms[name] = api.XInternAtom(dpy, name, 0);
+  const gtk = prop(root, name, 'long', 64);
+  if (gtk && gtk.length >= 4 && gtk.length % 4 === 0) {
+    const out = [];
+    for (let i = 0; i < gtk.length; i += 4) out.push({ x: gtk[i], y: gtk[i + 1], w: gtk[i + 2], h: gtk[i + 3] });
+    return { kind: 'areas', list: out };
+  }
+  const docks = [];
+  for (const w of prop(root, '_NET_CLIENT_LIST', 'long', 4096) || []) {
+    const types = prop(w, '_NET_WM_WINDOW_TYPE', 'long', 8);
+    if (!types || !types.includes(atoms._NET_WM_WINDOW_TYPE_DOCK)) continue;
+    const g = geometry(w);
+    if (g && g.w > 0 && g.h > 0) docks.push({ x: g.x, y: g.y, w: g.w, h: g.h });
+  }
+  return docks.length ? { kind: 'docks', list: docks } : null;
+}
+
 /** Läuft die Sitzung über Remotedesktop? Unter Linux: xrdp (auch die „erweiterte Sitzung“ von Hyper-V) */
 function remoteSession() {
   return !!(process.env.XRDP_SESSION || process.env.XRDP_SOCKET_PATH);
@@ -214,4 +254,4 @@ function exStyle() { return null; }
 /** Dateizuordnungen meldet Linux über die Desktop-Datenbank selbst – hier nichts zu tun */
 function notifyAssocChanged() { /* nichts */ }
 
-module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged };
+module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged, cursor, workAreas };

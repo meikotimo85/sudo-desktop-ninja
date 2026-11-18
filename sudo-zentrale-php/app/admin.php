@@ -28,7 +28,10 @@ $usage = function (string $where, array $p) use ($db): array {
 switch (true) {
     case $method === 'GET' && $sub === '/me':
         json_out(['user' => $sess['user'], 'name' => $sess['name'], 'via' => $sess['via'], 'csrf' => $sess['csrf'], 'version' => APP_VERSION,
-            'publicUrl' => $cfg['public_url'], 'aiKey' => !empty($cfg['anthropic_key']), 'transport' => 'poll', 'pollSec' => $cfg['poll_seconds']]);
+            'publicUrl' => $cfg['public_url'], 'aiKey' => !empty($cfg['anthropic_key']), 'transport' => 'poll', 'pollSec' => $cfg['poll_seconds'], 'security' => local_security($cfg)]);
+    // 1.14: zweiten Faktor vor dem Eintragen ausprobieren (der Schlüssel wird nicht gespeichert)
+    case $method === 'POST' && $sub === '/totp-check':
+        json_out(['ok' => totp_step((string) ($b['secret'] ?? ''), (string) ($b['code'] ?? '')) >= 0]);
 
     case $method === 'GET' && $sub === '/dashboard':
         $devs = $db->all('SELECT * FROM devices WHERE revoked = 0');
@@ -167,6 +170,8 @@ switch (true) {
             'tips_custom' => fn($v) => is_string($v) && strlen($v) <= 20000 && tips_clean($v) !== null,
             // 1.12: Plugins
             'plugins_user' => fn($v) => in_array((string) $v, ['true', 'false'], true),
+            // 1.14: Skin-Store
+            'skins_free' => fn($v) => in_array((string) $v, ['true', 'false'], true),
         ];
         foreach ($b as $k => $v) {
             if (!isset($check[$k])) continue;
@@ -398,6 +403,17 @@ switch (true) {
         json_out(plugin_save($db, is_array($pb) ? $pb : [], $who));
     case preg_match('#^/plugins/([a-z0-9-]{2,40})$#', $sub, $mm) === 1 && in_array($method, ['PATCH', 'DELETE'], true):
         if ($method === 'DELETE') plugin_delete($db, $mm[1], $who); else plugin_patch($db, $mm[1], $b, $who);
+        json_out(['ok' => true]);
+
+    /* Skins (1.14) */
+    case $method === 'GET' && $sub === '/skins':
+        json_out(skins_admin($db));
+    case $method === 'POST' && $sub === '/skins':
+        // Eigenes Lesen: body() liest höchstens 256 KB, eine Skin-Grafik darf 1 MB haben (als Base64 und JSON etwas mehr)
+        $sb = json_decode(file_get_contents('php://input', false, null, 0, 2 * 1024 * 1024) ?: '', true);
+        json_out(skin_save($db, is_array($sb) ? $sb : [], $who));
+    case preg_match('#^/skins/([a-z0-9-]{2,40})$#', $sub, $mm) === 1 && in_array($method, ['PATCH', 'DELETE'], true):
+        if ($method === 'DELETE') skin_delete($db, $mm[1], $who); else skin_patch($db, $mm[1], $b, $who);
         json_out(['ok' => true]);
 
     case $method === 'GET' && $sub === '/audit':

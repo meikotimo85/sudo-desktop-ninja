@@ -1,0 +1,2 @@
+# Shell-Skripte für Linux immer mit LF (sonst scheitert /bin/sh an \r)
+*.sh text eol=lf

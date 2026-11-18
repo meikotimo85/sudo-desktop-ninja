@@ -19,5 +19,6 @@ contextBridge.exposeInMainWorld('sudoHost', {
   reportError: m => ipcRenderer.send('renderer-error', String(m).slice(0, 300)),
   visitDone: (id, result) => ipcRenderer.send('visit-done', { id: Number(id), result: String(result) }),
   travel: dir => ipcRenderer.send('travel', dir === 'left' ? 'left' : 'right'),
-  dragOut: (x, y) => ipcRenderer.send('drag-out', { x: Number(x), y: Number(y) })
+  dragOut: (x, y) => ipcRenderer.send('drag-out', { x: Number(x), y: Number(y) }),
+  trayMenu: () => ipcRenderer.send('tray-popup')
 });

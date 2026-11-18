@@ -131,3 +131,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .mq{margin:6px 0 0 18px;padding:0;max-height:220px;overflow:auto}.mq li{margin:2px 0}
 .diag{font-size:11.5px;margin-top:2px}.diag .pill{margin-left:6px;cursor:help}
 .kbsnip{font-size:12px;margin-top:3px;max-width:640px}
+/* 1.14: Notfall-Zugang – Code-Feld bei der Anmeldung und Schlüssel für den zweiten Faktor */
+.login input.code { width: 120px; flex: none; letter-spacing: 2px; }
+code.big { display: block; font-size: 18px; letter-spacing: 2px; padding: 8px 10px; background: #0f131b; border: 1px solid var(--line, #2a3344); border-radius: 6px; user-select: all; overflow-wrap: anywhere; }
+.qform code { display: block; overflow-wrap: anywhere; user-select: all; }
+/* 1.14: Skin-Vorschau in der Verwaltung */
+canvas.skinthumb { width: 48px; height: 52px; image-rendering: pixelated; background: linear-gradient(180deg, #0c1222, #1b2848); border-radius: 6px; }
+input.num { width: 90px; }

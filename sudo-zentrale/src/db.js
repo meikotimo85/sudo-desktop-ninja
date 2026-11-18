@@ -80,6 +80,10 @@ CREATE TABLE IF NOT EXISTS onboard_status (device_id TEXT NOT NULL, item_id INTE
 CREATE TABLE IF NOT EXISTS plugins (id TEXT PRIMARY KEY, name TEXT NOT NULL, version TEXT NOT NULL DEFAULT '', html TEXT NOT NULL, sha TEXT NOT NULL,
   size INTEGER NOT NULL DEFAULT 0, w INTEGER NOT NULL DEFAULT 900, h INTEGER NOT NULL DEFAULT 720, target TEXT NOT NULL DEFAULT 'all',
   active INTEGER NOT NULL DEFAULT 1, author TEXT, created INTEGER NOT NULL, updated INTEGER NOT NULL);
+-- 1.14: Skins für den Skin-Store
+CREATE TABLE IF NOT EXISTS skins (id TEXT PRIMARY KEY, name TEXT NOT NULL, price INTEGER NOT NULL DEFAULT 0, png TEXT NOT NULL, sheet TEXT,
+  sha TEXT NOT NULL, size INTEGER NOT NULL DEFAULT 0, target TEXT NOT NULL DEFAULT 'all', active INTEGER NOT NULL DEFAULT 1,
+  author TEXT, created INTEGER NOT NULL, updated INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_messages_expires ON messages(expires);
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit(ts);
 `;
@@ -96,7 +100,8 @@ const DEFAULT_SETTINGS = {
   // 1.10: Mitarbeiter-Erlebnis – Stimmung, Rückmeldung nach Störungen, Start-Checkliste, Tipps
   pulse_enabled: 'true', pulse_monthly: 'false', pulse_incident: 'true', pulse_min: '5',
   onboard_enabled: 'false', onboard_days: '30', tips_enabled: 'true', tips_custom: '[]',
-  plugins_user: 'true'          // 1.12: eigene Plugins der Mitarbeitenden erlaubt
+  plugins_user: 'true',         // 1.12: eigene Plugins der Mitarbeitenden erlaubt
+  skins_free: 'false'           // 1.14: alle Skins im Store kostenlos
 };
 
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');

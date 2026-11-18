@@ -20,4 +20,4 @@ __pycache__/
 # Echte Update-Adresse für BAUEN.bat (nur lokal)
 sudo-desktop/update-adresse.txt
 # Vorschau aus tools/build-plugin-icon.js
-sudo-desktop/tools/plugin-file-preview.png
+sudo-desktop/tools/*-file-preview.png

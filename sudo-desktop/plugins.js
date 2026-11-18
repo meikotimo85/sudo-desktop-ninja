@@ -227,11 +227,12 @@ function createPlugins({ dir, log = () => {}, electron, icon, devTools = false }
     const m = out && out.match(/REG_(?:EXPAND_)?SZ\s+(.*)$/m);
     return m ? m[1].trim() : null;
   }
-  async function registerFileType({ ext = '.sudoplugin', progId = 'Sudo.Plugin', typeName = 'Sudo-Plugin', command, iconSrc, iconDir, notify = () => {} }) {
+  async function registerFileType({ ext = '.sudoplugin', progId = 'Sudo.Plugin', typeName = 'Sudo-Plugin', command, iconSrc, iconDir, notify = () => {}, linux = null }) {
+    if (process.platform === 'linux' || (linux && linux.force)) return registerLinux({ ext, typeName, ...(linux || {}) });
     if (process.platform !== 'win32') return { ok: false, changed: false };
     let iconPath = '';
     try {
-      iconPath = path.join(iconDir, 'plugin-file.ico');
+      iconPath = path.join(iconDir, path.basename(iconSrc));
       const src = fs.readFileSync(iconSrc);
       if (!fs.existsSync(iconPath) || !fs.readFileSync(iconPath).equals(src)) fs.writeFileSync(iconPath, src);
     } catch (e) { log('Plugin-Symbol: ' + e.message); iconPath = ''; }
@@ -245,6 +246,55 @@ function createPlugins({ dir, log = () => {}, electron, icon, devTools = false }
       changed = true;
     }
     if (changed) { notify(); log(`Dateiendung ${ext} eingetragen`); }
+    return { ok: true, changed };
+  }
+
+  /* Linux (1.14): Freedesktop-Weg – MIME-Typ, Symbol und eine versteckte .desktop-Datei unter ~/.local/share,
+     danach die Datenbanken auffrischen. Alles nur für den angemeldeten Benutzer, ohne Root. */
+  // kind: 'plugin' oder 'skin' (1.14) – bestimmt MIME-Typ, Datei- und Symbolnamen; scheme: zusätzliches Link-Protokoll (z. B. sudo-ninja)
+  async function registerLinux({ ext, typeName, exec, iconPng, dataHome, run = true, kind = 'plugin', scheme = '' }) {
+    const home = dataHome || process.env.XDG_DATA_HOME || path.join(require('os').homedir(), '.local', 'share');
+    const mime = `application/x-sudo-${kind}`, base = ext.replace(/^\./, ''), icon = `application-x-sudo-${kind}`, desk = `sudo-desktop-${kind}.desktop`;
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const files = [
+      [path.join(home, 'mime', 'packages', `sudo-${kind}.xml`), [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">',
+        `  <mime-type type="${mime}">`,
+        `    <comment>${esc(typeName)}</comment>`,
+        `    <glob pattern="*.${esc(base)}"/>`,
+        `    <icon name="${icon}"/>`,
+        '  </mime-type>',
+        '</mime-info>', ''].join('\n')],
+      [path.join(home, 'applications', desk), [
+        '[Desktop Entry]', 'Type=Application', 'Name=Sudo', 'Comment=' + typeName,
+        'Exec=' + exec + ' %f', 'Icon=sudo-desktop', 'MimeType=' + mime + ';' + (scheme ? `x-scheme-handler/${scheme};` : ''), 'NoDisplay=true', 'Terminal=false', ''].join('\n')]
+    ];
+    let changed = false;
+    for (const [f, text] of files) {
+      try { if (fs.readFileSync(f, 'utf8') === text) continue; } catch { /* neu */ }
+      fs.mkdirSync(path.dirname(f), { recursive: true });
+      fs.writeFileSync(f, text);
+      changed = true;
+    }
+    if (iconPng) {
+      const f = path.join(home, 'icons', 'hicolor', '256x256', 'mimetypes', icon + '.png');
+      try {
+        const src = fs.readFileSync(iconPng);
+        let same = false;
+        try { same = fs.readFileSync(f).equals(src); } catch { /* neu */ }
+        if (!same) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, src); changed = true; }
+      } catch (e) { log('Plugin-Symbol: ' + e.message); }
+    }
+    if (changed && run) {
+      // Programme direkt starten (ohne Shell); fehlt eines, greift die Zuordnung spätestens nach dem nächsten Anmelden
+      const tool = (cmd, args) => new Promise(res => execFile(cmd, args, { timeout: 15000 }, () => res()));
+      await tool('update-mime-database', [path.join(home, 'mime')]);
+      await tool('update-desktop-database', [path.join(home, 'applications')]);
+      await tool('xdg-mime', ['default', desk, mime]);
+      if (scheme) await tool('xdg-mime', ['default', desk, `x-scheme-handler/${scheme}`]);
+    }
+    if (changed) log(`Dateiendung ${ext} eingetragen (Linux)`);
     return { ok: true, changed };
   }
 

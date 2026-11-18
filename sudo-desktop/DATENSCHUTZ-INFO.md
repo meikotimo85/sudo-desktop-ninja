@@ -30,6 +30,7 @@ Ordner `%APPDATA%\Sudo\` – nur für das eigene Windows-Konto lesbar:
 - **Erinnerungen und Notizen**, die man selbst einträgt
 - **Verlauf „Was hat Sudo gesagt?“** (ab 1.9, durchsuchbar ab 1.11): wichtige Sprechblasen, bei Meldungen mit Ticket- und Gerätekennung. Aufbewahrung selbst einstellbar: Aus, 7, 30 (Standard), 90 Tage oder 1 Jahr, höchstens 2000 Einträge; Abgelaufenes wird aus der Datei gelöscht. Wird nie an die Zentrale übertragen
 - **Gewohnheiten** (ab 1.10): an welchem Tag zuletzt an Win+L erinnert oder gelobt wurde und welche Tipps zuletzt kamen – nicht, was man tut
+- **Skin-Store** (ab 1.14): welche Skins gekauft wurden und welcher angezogen ist. Käufe bleiben auf dem PC; die Zentrale erfährt davon nichts
 - **Plugins** (ab 1.12): Zusatzwerkzeuge der IT oder eigene, jedes mit eigenem Speicher. Plugins haben keinen Internetzugang und keinen Zugriff auf Sudo oder Dateien – was man darin eingibt, bleibt auf dem PC
 - **Ereignisprotokoll** für die Fehlersuche (technische Meldungen)
 - **Schlüssel** (API-/Geräte-Schlüssel) – mit Windows verschlüsselt (DPAPI)

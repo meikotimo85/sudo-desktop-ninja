@@ -7,6 +7,8 @@ Options -Indexes
   # Interne Ordner niemals ausliefern
   RewriteRule ^(app|data|werkzeuge)(/|$) - [F,L]
   RewriteRule ^config(\.sample)?\.php$ - [F,L]
+  # 1.14: auch Sicherungskopien der Konfiguration (config.php.bak, config.php~ …) nie ausliefern
+  RewriteRule (^|/)config[^/]*$ - [F,L,NC]
   # Authorization-Kopfzeile an PHP durchreichen (bei manchen Hostern nötig)
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -22,5 +24,9 @@ Options -Indexes
   </FilesMatch>
 </IfModule>
 <FilesMatch "\.(sqlite|db|log|secret)$">
+  Require all denied
+</FilesMatch>
+# 1.14: Sicherungs- und Editor-Dateien (z. B. index.php.bak, .swp) nie ausliefern – darin könnte Quelltext oder ein Passwort stehen
+<FilesMatch "(\.(bak|old|orig|save|swp|tmp|dist)|~)$">
   Require all denied
 </FilesMatch>

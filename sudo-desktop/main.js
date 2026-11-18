@@ -8,7 +8,8 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
-const win32 = require('./win32');
+// Fenster-Schnittstelle: Windows-API oder unter Linux libX11 (1.12) – beide mit gleicher Schnittstelle
+const win32 = require(process.platform === 'linux' ? './x11' : './win32');
 const { createWork, normalize: normalizeWork, DEFAULTS: WORK_DEFAULTS } = require('./work');
 const { createWatch, WATCH_DEFAULTS } = require('./watch');
 const { createReminders } = require('./reminders');
@@ -23,10 +24,12 @@ const { createYouTube } = require('./youtube');
 const { createDiag } = require('./diag');
 const { createHabits, HABITS_DEFAULTS } = require('./habits');       // 1.10: Sperr-Erinnerung, Tipps
 const { createCheckin, CHECKIN_DEFAULTS } = require('./checkin');    // 1.10: Stimmung, Start-Checkliste
-const { createPlugins } = require('./plugins');                     // 1.12: Plugins (abgeschottete HTML-Werkzeuge)
+const { createPlugins } = require('./plugins');
+const { createSkinStore } = require('./skinstore');                 // 1.14: Skin-Store
+let skinStore = null;                     // 1.12: Plugins (abgeschottete HTML-Werkzeuge)
 let plugins = null;
 const { rebootPending } = require('./health');
-const { createDeck, deckPublic, normalizeDeck, cleanCustom, BUILTIN: DECK_BUILTIN, DECK_DEFAULTS, MAX_CUSTOM } = require('./deck');
+const { createDeck, deckPublic, normalizeDeck, cleanCustom, BUILTIN: DECK_BUILTIN, DECK_DEFAULTS, MAX_CUSTOM, PLUGIN_KEY } = require('./deck');
 const I18N = require('./renderer/i18n.js');
 for (const c of ['en', 'ja']) { const d = require(`./renderer/lang/${c}.js`); I18N.register(d.code, d.table); }
 const T = s => I18N.t(s);
@@ -34,6 +37,10 @@ const T = s => I18N.t(s);
 const PORT = 4711;
 const POLL_MS = 80, POLL_ECO_MS = 220;
 const TEST = process.env.SUDO_TEST === '1';
+
+// Linux (1.12): Unter Wayland darf eine App ihr Fenster weder frei platzieren noch dauerhaft nach vorn holen.
+// Deshalb läuft Sudo dort über XWayland. Mit SUDO_WAYLAND=1 lässt sich das zum Ausprobieren abschalten.
+if (process.platform === 'linux' && process.env.SUDO_WAYLAND !== '1') app.commandLine.appendSwitch('ozone-platform', 'x11');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 
@@ -86,7 +93,7 @@ function setLanguage(code) {
   buildTrayMenu();
 }
 // Was das Overlay wissen darf (ohne Relay-Token)
-const publicSettings = () => ({ deck: deckPublic(settings.deck), contrast: settings.contrast, bubble: settings.bubble, darkTheme: darkTheme(), sound: settings.sound, bugs: settings.bugs, size: settings.size, appComments: settings.appComments, home: settings.home, watch: settings.watch, outfit: settings.outfit, toy: settings.toy, special: settings.special });
+const publicSettings = () => ({ deck: deckPublic(settings.deck, plugins ? plugins.list() : []), contrast: settings.contrast, bubble: settings.bubble, darkTheme: darkTheme(), sound: settings.sound, bugs: settings.bugs, size: settings.size, appComments: settings.appComments, home: settings.home, watch: settings.watch, outfit: settings.outfit, toy: settings.toy, special: settings.special });
 // Dunkles Windows-Design? (Apps-Modus) – dann bekommt der schwarze Ninja automatisch einen Umriss
 const darkTheme = () => { try { return !!nativeTheme.shouldUseDarkColors; } catch { return false; } };
 
@@ -120,12 +127,14 @@ const legacySkin = () => fs.existsSync(path.join(skinDir(), 'sudo-sheet.png')) &
 function currentSkin() {
   const c = settings.skinChoice;
   if (c && (SKIN_VARIANTS[c] || (c === 'custom' && legacySkin()) || (c.startsWith('user:') && userSkins().includes(c.slice(5))))) return c;
+  if (c && c.startsWith('store:') && skinStore && skinStore.owned(c.slice(6))) return c;     // 1.14: gekaufter Store-Skin
   return legacySkin() ? 'custom' : 'classic';
 }
 function skinList() {
   return [...Object.entries(SKIN_VARIANTS).map(([id, v]) => ({ id, name: v.name, kind: 'variant' })),
     ...(legacySkin() ? [{ id: 'custom', name: 'Eigener Skin', kind: 'custom' }] : []),
-    ...userSkins().map(n => ({ id: 'user:' + n, name: n, kind: 'user' }))];
+    ...userSkins().map(n => ({ id: 'user:' + n, name: n, kind: 'user' })),
+    ...(skinStore ? skinStore.catalog().filter(s => s.owned).map(s => ({ id: 'store:' + s.key, name: s.name, kind: 'store' })) : [])];
 }
 function setSkin(id) {
   if (!skinList().some(s => s.id === id)) return false;
@@ -147,6 +156,10 @@ function withDefaultAcc(custom) {
 }
 function loadSheet() {
   const choice = currentSkin();
+  if (choice.startsWith('store:')) {
+    try { const s = skinStore.sheet(choice.slice(6)); if (s) return { ...withDefaultAcc(s), custom: true, skin: choice }; }
+    catch (e) { writeLog('Skin „' + choice.slice(6) + '“ fehlerhaft, nutze Standard: ' + e.message); }
+  }
   if (choice.startsWith('user:')) {
     try { const u = readSheet(path.join(skinsRoot(), choice.slice(5))); if (u) return { ...withDefaultAcc(u), custom: true, skin: choice }; }
     catch (e) { writeLog('Skin „' + choice.slice(5) + '“ fehlerhaft, nutze Standard: ' + e.message); }
@@ -234,8 +247,28 @@ function send(ch, data) {
 function layoutInfo() {
   const b = display.bounds, wa = display.workArea;
   // Boden = Oberkante der Taskleiste (wenn sie unten liegt), sonst Bildschirmunterkante
-  const floor = wa.y + wa.height < b.y + b.height ? wa.y + wa.height - b.y : b.height;
+  let floor = wa.y + wa.height < b.y + b.height ? wa.y + wa.height - b.y : b.height;
+  if (process.platform === 'linux') floor = Math.min(floor, linuxFloor(b));
   return { width: b.width, height: b.height, floor };
+}
+// Linux: Electron kennt die Leiste nur auf dem Hauptmonitor → Oberkante der Leiste je Monitor selbst bestimmen
+let linuxAreas = { at: 0, v: null };
+function linuxFloor(b) {
+  if (typeof win32.workAreas !== 'function') return b.height;
+  if (Date.now() - linuxAreas.at > 5000) { try { linuxAreas = { at: Date.now(), v: win32.workAreas() }; } catch { linuxAreas = { at: Date.now(), v: null }; } }
+  const a = linuxAreas.v;
+  if (!a) return b.height;
+  const f = display.scaleFactor || 1;
+  const r = a.list.map(q => ({ x: q.x / f, y: q.y / f, w: q.w / f, h: q.h / f }));
+  const overlapX = q => Math.min(q.x + q.w, b.x + b.width) - Math.max(q.x, b.x);
+  if (a.kind === 'areas') {
+    // die freie Fläche, die am meisten mit diesem Monitor überlappt
+    const best = r.filter(q => overlapX(q) > 0 && q.y < b.y + b.height && q.y + q.h > b.y).sort((p, q) => overlapX(q) - overlapX(p))[0];
+    return best && best.y + best.h < b.y + b.height ? Math.max(b.height * 0.5, best.y + best.h - b.y) : b.height;
+  }
+  // Leisten unten auf diesem Monitor: flach, breit genug und mit Unterkante am Monitorrand
+  const low = r.filter(q => q.h < 200 && overlapX(q) > b.width * 0.3 && Math.abs(q.y + q.h - (b.y + b.height)) <= 4);
+  return low.length ? Math.max(b.height * 0.5, Math.min(...low.map(q => q.y)) - b.y) : b.height;
 }
 let currentDisplayId = null;   // Bildschirm, auf dem Sudo gerade ist (kann beim Wandern wechseln)
 function chosenDisplay() {
@@ -279,7 +312,7 @@ ipcMain.on('drag-out', (_e, m) => {
   // Position aus dem Zieh-Ereignis: Fensterecke + Mausposition im Fenster (zuverlässiger als die Systemabfrage)
   const wb = win.getBounds();
   const p = m && Number.isFinite(m.x) && Number.isFinite(m.y) && Math.abs(m.x) < 20000 && Math.abs(m.y) < 20000
-    ? { x: Math.round(wb.x + m.x), y: Math.round(wb.y + m.y) } : screen.getCursorScreenPoint();
+    ? { x: Math.round(wb.x + m.x), y: Math.round(wb.y + m.y) } : cursorPoint();
   const d = screen.getAllDisplays().find(x => p.x >= x.bounds.x && p.x < x.bounds.x + x.bounds.width && p.y >= x.bounds.y && p.y < x.bounds.y + x.bounds.height);
   if (!d || d.id === display.id) return;
   lastDragOut = Date.now();
@@ -300,7 +333,7 @@ function displayMenu() {
 }
 // "Sudo rufen" holt ihn auf den Bildschirm mit dem Mauszeiger
 function summon() {
-  const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const d = screen.getDisplayNearestPoint(cursorPoint());
   if (display && d.id !== display.id) { currentDisplayId = d.id; placeWindow(); lastPlatforms = ''; sendNeighbors(); }
   send('summon');
 }
@@ -326,7 +359,10 @@ function subtract(segs, a, b) {
 }
 function toDip(r) {
   const rect = { x: r.left, y: r.top, width: r.right - r.left, height: r.bottom - r.top };
-  const d = typeof screen.screenToDipRect === 'function' ? screen.screenToDipRect(null, rect) : rect;
+  // screenToDipRect gibt es nur unter Windows; unter X11 sind die Koordinaten physisch → durch den Zoomfaktor teilen
+  const f = display.scaleFactor || 1;
+  const d = typeof screen.screenToDipRect === 'function' ? screen.screenToDipRect(null, rect)
+    : { x: rect.x / f, y: rect.y / f, width: rect.width / f, height: rect.height / f };
   const b = display.bounds;
   return { l: d.x - b.x, t: d.y - b.y, r: d.x + d.width - b.x, btm: d.y + d.height - b.y };
 }
@@ -675,7 +711,7 @@ function appPoll() {
       lastAppTag = tag;
       // Fenster-Kennung und Mausposition (relativ zum Overlay), damit Sudo z. B. zum Video läuft und mitguckt
       let cursor = null;
-      try { const c = screen.getCursorScreenPoint(), b = win.getBounds(); if (c.x >= b.x && c.x <= b.x + b.width) cursor = { x: c.x - b.x, y: c.y - b.y }; } catch { /* egal */ }
+      try { const c = cursorPoint(), b = win.getBounds(); if (c.x >= b.x && c.x <= b.x + b.width) cursor = { x: c.x - b.x, y: c.y - b.y }; } catch { /* egal */ }
       send('app', { tag, win: fg.id, cursor, browser: BROWSERS.test(fg.exe) });
     }
   } catch (e) { console.error('[app]', e.message); }
@@ -752,7 +788,7 @@ let toolsWin = null, quickWin = null, reminders = null, watch = null;
 const SHORTCUTS = { tools: 'Control+Alt+K', quick: 'Control+Alt+N', ask: 'Control+Alt+S' };
 const shortcutOk = {};
 function smallWindow(file, preload, w, h, title) {
-  const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+  const d = screen.getDisplayNearestPoint(cursorPoint()).workArea;
   const bw = new BrowserWindow({
     width: w, height: h, x: Math.round(d.x + (d.width - w) / 2), y: Math.round(d.y + (d.height - h) / 3),
     minWidth: Math.min(w, 460), minHeight: 360, autoHideMenuBar: true, title, backgroundColor: '#12161f', show: false,
@@ -805,6 +841,66 @@ function registerShortcuts() {
 /* ---------- Garderobe ---------- */
 const { ITEMS } = require('./renderer/progress.js');
 let wardrobeWin = null;
+/* ---------- Skin-Store (1.14) ---------- */
+let storeWin = null;
+function openSkinStore(focusKey) {
+  if (!skinStore) return;
+  if (storeWin && !storeWin.isDestroyed()) { storeWin.show(); storeWin.focus(); if (focusKey) storeWin.webContents.send('skinstore-focus', focusKey); return; }
+  storeWin = smallWindow('skinstore.html', 'preload-skinstore.js', 780, 680, 'Sudo – Skin-Store');
+  storeWin.__focus = focusKey || null;
+  storeWin.on('closed', () => { storeWin = null; });
+}
+function storeChanged() {
+  if (tray) buildTrayMenu();
+  if (storeWin && !storeWin.isDestroyed()) storeWin.webContents.send('skinstore-changed');
+  // Wurde der getragene Skin entfernt (z. B. von der IT), zurück zur Standardgrafik
+  if (String(settings.skinChoice || '').startsWith('store:') && currentSkin() !== settings.skinChoice) { settings.skinChoice = 'classic'; saveSettings(); reloadSkin(); }
+}
+ipcMain.handle('skinstore-get', e => {
+  const focus = storeWin && e.sender === storeWin.webContents ? storeWin.__focus : null;
+  if (storeWin) storeWin.__focus = null;
+  return { xp: Math.floor(xpNow()), belt: (lastStats && lastStats.rankColor) || '#eef1f5', current: currentSkin(), free: skinStore.free(), focus,
+    catalog: skinStore.catalog().map(({ key, source, id, name, price, owned }) => ({ key, source, id, name, price, owned })) };
+});
+ipcMain.handle('skinstore-preview', (_e, key) => skinStore.preview(String(key)));
+ipcMain.handle('skinstore-buy', (_e, key) => {
+  const r = skinStore.buy(String(key), xpNow());
+  if (r.ok && r.cost) {
+    if (lastStats) lastStats.xp = Math.max(0, (lastStats.xp || 0) - r.cost);   // gleich richtig anzeigen; das Overlay zieht die XP wirklich ab
+    send('xp_spend', { cost: r.cost, what: T('Neuer Skin: {x}').replace('{x}', r.name) });
+  }
+  if (r.ok) storeChanged();
+  return r;
+});
+ipcMain.handle('skinstore-wear', (_e, key) => (skinStore.owned(String(key)) && setSkin('store:' + key) ? { ok: true } : { ok: false, msg: 'Diesen Skin besitzt du noch nicht.' }));
+ipcMain.handle('skinstore-import', async () => {
+  const r = await dialog.showOpenDialog(storeWin || undefined, { title: T('Skin-Datei hinzufügen'), properties: ['openFile'], filters: [{ name: T('Sudo-Skin'), extensions: ['sudoskin'] }] });
+  if (r.canceled || !r.filePaths[0]) return { ok: false };
+  const a = skinStore.importFile(r.filePaths[0]);
+  if (a.ok) storeChanged();
+  return a;
+});
+ipcMain.on('skinstore-folder', () => openSkinFolder());
+// Doppelklick auf eine .sudoskin-Datei: nachfragen, dann hinzufügen (gehört sofort dir) und auf Wunsch anziehen
+async function offerSkin(file) {
+  if (!skinStore) { setTimeout(() => offerSkin(file), 1000); return; }
+  const c = skinStore.inspectFile(file), icon = path.join(__dirname, 'assets', 'icon.png');
+  if (!c.ok) {
+    if (!(TEST && process.env.SUDO_DIALOG_ANSWER)) await dialog.showMessageBox({ type: 'warning', title: 'Sudo', icon, message: T('Skin kann nicht hinzugefügt werden'), detail: T(c.msg), buttons: ['OK'] });
+    writeLog('Skin-Datei abgelehnt: ' + c.msg); console.log('[skin-offer]', JSON.stringify({ ok: false, msg: c.msg }));
+    return;
+  }
+  const answer = TEST && process.env.SUDO_DIALOG_ANSWER ? Number(process.env.SUDO_DIALOG_ANSWER)
+    : (await dialog.showMessageBox({ type: 'question', title: T('Sudo – Skin hinzufügen'), icon, message: T('Skin „{x}“ hinzufügen?').replace('{x}', c.name),
+      detail: T('Datei: {x}').replace('{x}', path.basename(file)) + (c.had ? ' · ' + T('ersetzt den vorhandenen') : ''),
+      buttons: [T('Hinzufügen und anziehen'), T('Nur hinzufügen'), T('Abbrechen')], defaultId: 0, cancelId: 2, noLink: true })).response;
+  console.log('[skin-offer]', JSON.stringify({ ok: true, name: c.name, answer }));
+  if (answer === 2) return;
+  const a = skinStore.importFile(file);
+  if (!a.ok) return;
+  storeChanged();
+  if (answer === 0) setSkin('store:' + a.key); else send('event', { type: 'success', text: T(a.msg) });
+}
 function openWardrobe() {
   if (wardrobeWin && !wardrobeWin.isDestroyed()) { wardrobeWin.show(); wardrobeWin.focus(); return; }
   wardrobeWin = smallWindow('wardrobe.html', 'preload-wardrobe.js', 680, 800, 'Sudo – Garderobe');
@@ -1014,6 +1110,9 @@ function pluginTray() {
     { type: 'separator' },
     { label: ML('Plugins verwalten …'), click: () => openSettings('plugins') }] }];
 }
+// 1.14: Rechtsklick auf Sudo zeigt dasselbe Menü wie das Tray-Symbol (unter GNOME gibt es ohne Erweiterung gar kein Tray)
+let trayMenu = null;
+ipcMain.on('tray-popup', () => { if (trayMenu && win && !win.isDestroyed()) trayMenu.popup({ window: win }); });
 function buildTrayMenu() {
   if (!tray) return;
   const enrolled = !!(zentraleApi && zentraleApi.status().enrolled);
@@ -1041,7 +1140,9 @@ function buildTrayMenu() {
     ...(music && music.enabled ? [{ label: ML('Musikwunsch …'), icon: mIcon('music'), click: () => openMusic() }] : []),
     { label: ML('Garderobe …'), icon: mIcon('wardrobe'), click: openWardrobe },
     { label: ML('Skin'), icon: mIcon('skin'), submenu: [
-      ...skinList().map(s => ({ label: ML(s.kind === 'user' ? s.name : T(s.name)), type: 'radio', checked: s.id === currentSkin(), click: () => setSkin(s.id) })),
+      { label: ML('Skin-Store …'), click: () => openSkinStore() },
+      { type: 'separator' },
+      ...skinList().map(s => ({ label: ML(s.kind === 'user' || s.kind === 'store' ? s.name : T(s.name)), type: 'radio', checked: s.id === currentSkin(), click: () => setSkin(s.id) })),
       { type: 'separator' },
       { label: ML('Eigene Skins (Ordner öffnen) …'), click: openSkinFolder }] },
     { label: ML('Spielen'), icon: mIcon('play'), submenu: [
@@ -1066,6 +1167,7 @@ function buildTrayMenu() {
     { label: ML('Beenden'), icon: mIcon('quit'), click: () => app.quit() }
   ]);
   tray.setContextMenu(menu);
+  trayMenu = menu;
   tray.setToolTip(T(trayTip));
   // Nur Test: Tray-Menü ausgeben (Untermenüs mit ihren Einträgen)
   if (TEST && process.env.SUDO_TRAY_DUMP) console.log('[tray]', JSON.stringify(menu.items.filter(i => i.label).map(i => (i.submenu ? { [i.label]: i.submenu.items.map(s => s.label).filter(Boolean) } : i.label))));
@@ -1085,7 +1187,22 @@ function openSettings(tab) {
 }
 function setAutostart(on) {
   settings.autostart = !!on;
+  if (process.platform === 'linux') return linuxAutostart(!!on);
   try { app.setLoginItemSettings({ openAtLogin: !!on, path: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath }); } catch (e) { writeLog('Autostart: ' + e.message); }
+}
+// Linux (1.12): Electron kennt dort keinen Autostart → .desktop-Datei nach XDG unter ~/.config/autostart
+function linuxAutostart(on) {
+  const dir = path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'autostart');
+  const file = path.join(dir, 'sudo-desktop.desktop');
+  try {
+    if (!on) { fs.rmSync(file, { force: true }); return; }
+    const exe = process.env.APPIMAGE || process.execPath;      // AppImage: Pfad der .AppImage-Datei, nicht des entpackten Ordners
+    const q = s => '"' + String(s).replace(/(["`$\\])/g, '\\$1') + '"';
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, ['[Desktop Entry]', 'Type=Application', 'Name=Sudo', 'Comment=Sudo – Desktop-Ninja',
+      'Exec=' + q(exe) + (exe === process.execPath && !app.isPackaged ? ' ' + q(app.getAppPath()) : ''),
+      'Icon=sudo-desktop', 'Terminal=false', 'X-GNOME-Autostart-enabled=true', ''].join('\n'));
+  } catch (e) { writeLog('Autostart: ' + e.message); }
 }
 const bool = v => !!v;
 const SETTERS = {
@@ -1117,6 +1234,9 @@ const SETTERS = {
   deckBuiltin: v => { if (v && DECK_BUILTIN[v.id]) { const l = settings.deck.builtin.filter(x => x !== v.id); if (v.on) l.push(v.id); settings.deck = normalizeDeck({ ...settings.deck, builtin: l }); } },
   deckAdd: v => { const c = cleanCustom(v); if (c && settings.deck.custom.length < MAX_CUSTOM) settings.deck = normalizeDeck({ ...settings.deck, custom: [...settings.deck.custom, c] }); },
   deckDel: v => { settings.deck = normalizeDeck({ ...settings.deck, custom: settings.deck.custom.filter(c => c.id !== v) }); },
+  // 1.14: Rad oder Leiste; einzelne Plugins ein- und ausblenden
+  deckStyle: v => { if (v === 'rad' || v === 'leiste') settings.deck = normalizeDeck({ ...settings.deck, style: v }); },
+  deckPlugin: v => { if (!v || !PLUGIN_KEY.test(String(v.key))) return; const l = (settings.deck.hidePlugins || []).filter(k => k !== v.key); if (!v.on) l.push(v.key); settings.deck = normalizeDeck({ ...settings.deck, hidePlugins: l }); },
   quizOn: v => { settings.quiz = { ...settings.quiz, on: bool(v) }; },
   quizPerWeek: v => { const n = Number(v); if ([1, 2, 3, 5].includes(n)) settings.quiz = { ...settings.quiz, perWeek: n }; },
   visitName: v => { settings.visits = { ...settings.visits, name: String(v || '').trim().slice(0, 30) }; if (zentraleApi) zentraleApi.prefsChanged(); },
@@ -1133,7 +1253,7 @@ function settingsSnapshot() {
   return {
     diag: diag.view(),
     settings: { ...publicSettings(), meetingQuiet: settings.meetingQuiet, hideFromCapture: settings.hideFromCapture, notify: settings.notify,
-      autostart: settings.autostart, displayId: settings.displayId, roam: settings.roam, eco: settings.eco, autoUpdate: settings.autoUpdate, lang: settings.lang, visits: settings.visits, media: mediaView(), quiz: quiz ? { ...quiz.config(), ...quiz.stats() } : { on: true, perWeek: 2 }, contrast: settings.contrast, bubble: settings.bubble, deck: settings.deck, deckBuiltin: Object.entries(DECK_BUILTIN).map(([id, b]) => ({ id, name: b.name, admin: !!b.admin })), darkTheme: darkTheme(), visitNameDefault: os.userInfo().username,
+      autostart: settings.autostart, displayId: settings.displayId, roam: settings.roam, eco: settings.eco, autoUpdate: settings.autoUpdate, lang: settings.lang, visits: settings.visits, media: mediaView(), quiz: quiz ? { ...quiz.config(), ...quiz.stats() } : { on: true, perWeek: 2 }, contrast: settings.contrast, bubble: settings.bubble, deck: settings.deck, deckPlugins: (plugins ? plugins.list() : []).map(p => ({ key: p.source + '/' + p.id, name: p.name, source: p.source, shown: !(settings.deck.hidePlugins || []).includes(p.source + '/' + p.id) })), deckBuiltin: Object.entries(DECK_BUILTIN).map(([id, b]) => ({ id, name: b.name, admin: !!b.admin })), darkTheme: darkTheme(), visitNameDefault: os.userInfo().username,
       habits: { lockHint: settings.habits.lockHint !== false, tips: settings.habits.tips || 'normal', tipsManaged: tipsBlocked() }, history: { days: historyDays(), n: historyLoad().length } },
     langEff: effLang(),
     displays: screen.getAllDisplays().map((d, i) => ({ id: d.id, label: `Bildschirm ${i + 1}${d.id === prim ? ' (Haupt)' : ''} · ${d.size.width} × ${d.size.height}` })),
@@ -1145,6 +1265,7 @@ function mediaView() { const m = settings.media || {}; return { videos: m.videos
 // 1.12: Plugins – Tray und Einstellungen auffrischen
 function pluginsChanged() {
   if (tray) buildTrayMenu();
+  send('settings', publicSettings());            // Rad bzw. Leiste im Overlay auffrischen
   if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-plugins');
 }
 function pluginsView() { return plugins ? { allowed: plugins.userAllowed(), items: plugins.list().map(p => ({ id: p.id, source: p.source, name: p.name, version: p.version })) } : { allowed: true, items: [] }; }
@@ -1203,6 +1324,7 @@ ipcMain.handle('center-action', async (_e, action, arg) => {
     case 'pluginRemove': { const r = plugins ? plugins.remove(String(arg || '')) : { ok: false }; pluginsChanged(); return { ...r, msg: T(r.msg || '') }; }
     case 'zentraleReconnect': if (zentraleApi) zentraleApi.reconnect(); return { ok: true, msg: 'Verbinde neu …' };
     case 'skinFolder': openSkinFolder(); break;
+    case 'skinStore': openSkinStore(); break;
     case 'skinReload': reloadSkin(); return { ok: true, msg: skinStatus().text + ' – neu geladen.' };
     case 'skinReset': return resetSkin();
     case 'skinSet': return setSkin(String(arg || '')) ? { ok: true } : { ok: false, msg: T('Diesen Skin gibt es nicht.') };
@@ -1237,6 +1359,8 @@ function aboutInfo() {
 function installKind() {
   if (process.env.PORTABLE_EXECUTABLE_FILE) return 'Portable EXE';
   if (!app.isPackaged) return 'Entwicklerstart (START.bat)';
+  if (process.env.APPIMAGE) return 'AppImage';                                  // Linux (1.12)
+  if (process.platform === 'linux') return 'Linux-Paket (.deb)';
   if (/program files/i.test(process.execPath)) return 'Installiert (alle Benutzer / MSI)';
   return 'Installiert (Setup)';
 }
@@ -1248,7 +1372,7 @@ async function diagnostics() {
   add('Version', i.version); add('Installationsart', i.installed); add('Electron / Chrome / Node', `${i.electron} / ${i.chrome} / ${i.node}`);
   { const v = diag.view(), n = v.now || {}, a = v.avg; add('Sudo-Ressourcen', `jetzt CPU ${n.cpu ?? '?'} % / RAM ${n.ram ?? '?'} MB` + (a ? ` · Ø 10 min CPU ${a.cpu} % / RAM ${a.ram} MB` : '')); add('Selbstheilung (24 h)', `${v.crashes}× · Fehler: ${v.errors.length ? v.errors[0].msg : 'keine'}`); }
   add('Betriebssystem', i.os); add('Arbeitsspeicher', `${Math.round(os.freemem() / 1e9 * 10) / 10} von ${Math.round(os.totalmem() / 1e9)} GB frei`);
-  add('Windows-API (Fenster)', win32.available() ? 'ok' : 'nicht verfügbar');
+  add(process.platform === 'linux' ? 'X11 (Fenster)' : 'Windows-API (Fenster)', win32.available() ? 'ok' : 'nicht verfügbar');
   add('Tastatur-Hook', hook ? 'läuft' : 'nicht gestartet');
   add('Tastenkürzel', `Werkzeugkasten ${shortcutOk.tools ? 'ok' : 'belegt'}, Erinnerung ${shortcutOk.quick ? 'ok' : 'belegt'}`);
   add('Webhook-Port', server && server.listening ? `${PORT} offen` : `${PORT} nicht offen`);
@@ -1275,6 +1399,9 @@ async function diagnostics() {
 let deck = null;
 ipcMain.handle('deck-run', async (_e, id) => {
   if (!deck || typeof id !== 'string') return { ok: false };
+  // 1.14: Plugins aus dem Rad bzw. der Leiste
+  const pm = id.match(/^plugin:((eigene|zentrale)\/[a-z0-9][a-z0-9-]{1,39})$/);
+  if (pm) { const [source, pid] = pm[1].split('/'); const ok = !!(plugins && plugins.open(source, pid)); return ok ? { ok: true, internal: true } : { ok: false, name: pid, msg: T('Plugin nicht gefunden.') }; }
   return deck.run(id.slice(0, 20));
 });
 
@@ -1447,7 +1574,8 @@ function openMusic() {
   musicWin = smallWindow('music.html', 'preload-music.js', 620, 700, 'Sudo – Musikwunsch');
   musicWin.on('closed', () => { musicWin = null; });
 }
-const xpNow = () => Math.max(0, Math.floor(Number((lastStats && lastStats.xp) || 0)));
+// XP-Stand aus dem Overlay; im Testmodus vor dessen erster Meldung der Wert aus SUDO_TEST_XP (1.14)
+const xpNow = () => Math.max(0, Math.floor(Number((lastStats && lastStats.xp) || (TEST && process.env.SUDO_TEST_XP ? process.env.SUDO_TEST_XP : 0))));
 ipcMain.handle('music-get', async () => {
   if (!zentraleApi || !zentraleApi.status().enrolled) return { ok: false, msg: 'Musikwünsche gehen nur mit der Sudo-Zentrale.' };
   const r = await zentraleApi.musicStatus();
@@ -1607,7 +1735,8 @@ function updateHost() {
 }
 const update = { state: 'idle', version: null, error: null, progress: 0 };
 let updater = null;
-function canAutoUpdate() { return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !/program files/i.test(process.execPath); }
+// Linux (1.12): nur das AppImage aktualisiert sich selbst (latest-linux.yml auf dem Update-Server), das .deb macht die Paketverwaltung
+function canAutoUpdate() { return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !/program files/i.test(process.execPath) && (process.platform !== 'linux' || !!process.env.APPIMAGE); }
 function setUpdate(patch) {
   Object.assign(update, patch);
   buildTrayMenu();
@@ -1634,7 +1763,8 @@ function initUpdater() {
   setInterval(() => { if (settings.autoUpdate) checkUpdate(false); }, 6 * 3600 * 1000);
 }
 async function checkUpdate(manual) {
-  if (!canAutoUpdate()) return { ok: false, msg: installKind() === 'Portable EXE' ? 'Die portable EXE aktualisiert sich nicht selbst. Lade einfach die neue EXE herunter.' : 'Diese Installation wird zentral verteilt (MSI/Intune) oder ist ein Entwicklerstart.' };
+  if (!canAutoUpdate()) return { ok: false, msg: installKind() === 'Portable EXE' ? 'Die portable EXE aktualisiert sich nicht selbst. Lade einfach die neue EXE herunter.'
+    : installKind() === 'Linux-Paket (.deb)' ? 'Das Linux-Paket wird über die Paketverwaltung aktualisiert.' : 'Diese Installation wird zentral verteilt (MSI/Intune) oder ist ein Entwicklerstart.' };
   if (!updater) return { ok: false, msg: 'Updater nicht verfügbar.' };
   try { await updater.checkForUpdates(); return { ok: true, msg: manual ? 'Suche nach Updates …' : '' }; }
   catch (e) { return { ok: false, msg: 'Update-Prüfung fehlgeschlagen: ' + e.message }; }
@@ -1723,7 +1853,7 @@ function createWindow() {
   });
   if (TEST) {
     setTimeout(async () => {
-      const target = plugins && plugins.lastWin() ? plugins.lastWin() : meetWin && !meetWin.isDestroyed() ? meetWin : pulseWin && !pulseWin.isDestroyed() ? pulseWin : startWin && !startWin.isDestroyed() ? startWin : kbWin && !kbWin.isDestroyed() ? kbWin : historyWin && !historyWin.isDestroyed() ? historyWin : musicWin && !musicWin.isDestroyed() ? musicWin : helpWin && !helpWin.isDestroyed() ? helpWin : hinweiseWin && !hinweiseWin.isDestroyed() ? hinweiseWin : quizWin && !quizWin.isDestroyed() ? quizWin : privacyWin && !privacyWin.isDestroyed() ? privacyWin : visitWin && !visitWin.isDestroyed() ? visitWin : askWin && !askWin.isDestroyed() ? askWin : lageWin && !lageWin.isDestroyed() ? lageWin : settingsWin && !settingsWin.isDestroyed() ? settingsWin : tourWin && !tourWin.isDestroyed() ? tourWin : wardrobeWin && !wardrobeWin.isDestroyed() ? wardrobeWin : toolsWin && !toolsWin.isDestroyed() ? toolsWin : quickWin && !quickWin.isDestroyed() ? quickWin : workWin && !workWin.isDestroyed() ? workWin : statsWin && !statsWin.isDestroyed() ? statsWin : relayWin && !relayWin.isDestroyed() ? relayWin : win;
+      const target = storeWin && !storeWin.isDestroyed() ? storeWin : plugins && plugins.lastWin() ? plugins.lastWin() : meetWin && !meetWin.isDestroyed() ? meetWin : pulseWin && !pulseWin.isDestroyed() ? pulseWin : startWin && !startWin.isDestroyed() ? startWin : kbWin && !kbWin.isDestroyed() ? kbWin : historyWin && !historyWin.isDestroyed() ? historyWin : musicWin && !musicWin.isDestroyed() ? musicWin : helpWin && !helpWin.isDestroyed() ? helpWin : hinweiseWin && !hinweiseWin.isDestroyed() ? hinweiseWin : quizWin && !quizWin.isDestroyed() ? quizWin : privacyWin && !privacyWin.isDestroyed() ? privacyWin : visitWin && !visitWin.isDestroyed() ? visitWin : askWin && !askWin.isDestroyed() ? askWin : lageWin && !lageWin.isDestroyed() ? lageWin : settingsWin && !settingsWin.isDestroyed() ? settingsWin : tourWin && !tourWin.isDestroyed() ? tourWin : wardrobeWin && !wardrobeWin.isDestroyed() ? wardrobeWin : toolsWin && !toolsWin.isDestroyed() ? toolsWin : quickWin && !quickWin.isDestroyed() ? quickWin : workWin && !workWin.isDestroyed() ? workWin : statsWin && !statsWin.isDestroyed() ? statsWin : relayWin && !relayWin.isDestroyed() ? relayWin : win;
       if (process.env.SUDO_SCROLL) { await target.webContents.executeJavaScript(`{const m=document.querySelector('main');if(m)m.scrollTop=${Number(process.env.SUDO_SCROLL)};document.scrollingElement.scrollTop=${Number(process.env.SUDO_SCROLL)};}`); await new Promise(r => setTimeout(r, 300)); }
       const img = await target.webContents.capturePage();
       fs.writeFileSync(process.env.SUDO_SHOT || 'shot.png', img.toPNG());
@@ -1783,7 +1913,7 @@ function checkSession() {
 let hit = { boxes: [], hold: false }, ignoring = true, lastIgnoreSet = 0;
 ipcMain.on('hitboxes', (_e, h) => {
   if (!h || !Array.isArray(h.boxes)) return;
-  hit = { boxes: h.boxes.slice(0, 20).filter(b => Array.isArray(b) && b.length === 4).map(b => b.map(Number)), hold: !!h.hold };
+  hit = { boxes: h.boxes.slice(0, 40).filter(b => Array.isArray(b) && b.length === 4).map(b => b.map(Number)), hold: !!h.hold };
   checkMouse();
 });
 function setIgnore(v, force = false) {
@@ -1792,9 +1922,16 @@ function setIgnore(v, force = false) {
   ignoring = v; lastIgnoreSet = Date.now();
   win.setIgnoreMouseEvents(v, { forward: true });
 }
+// Linux: Electron kennt die Maus nur über eigenen Fenstern → Position direkt vom X-Server, physische Pixel in DIP umrechnen
+function cursorPoint() {
+  const c = typeof win32.cursor === 'function' ? win32.cursor() : null;
+  if (!c) return screen.getCursorScreenPoint();
+  const f = (display && display.scaleFactor) || 1;
+  return { x: Math.round(c.x / f), y: Math.round(c.y / f) };
+}
 function checkMouse() {
   if (!win || win.isDestroyed() || !display || hiddenForFullscreen) return;
-  const p = screen.getCursorScreenPoint(), b = display.bounds;
+  const p = cursorPoint(), b = display.bounds;
   const x = p.x - b.x, y = p.y - b.y, pad = 6;
   const over = hit.hold || hit.boxes.some(([l, t, r, bt]) => x >= l - pad && x <= r + pad && y >= t - pad && y <= bt + pad);
   // alle 5 Sekunden den Zustand neu setzen, falls Windows ihn verloren hat
@@ -1811,8 +1948,18 @@ ipcMain.on('stats', (_e, s) => {
 });
 
 // 1.13: Doppelklick auf eine .sudoplugin-Datei startet Sudo mit dem Pfad – läuft Sudo schon, kommt er hier an
-app.on('second-instance', (_e, argv) => { const f = pluginArg(argv); if (f) offerPlugin(f); else summon(); });
+app.on('second-instance', (_e, argv) => { if (!handleArgs(argv)) summon(); });
 function pluginArg(argv) { return (argv || []).slice(1).find(a => /\.sudoplugin$/i.test(String(a)) && fs.existsSync(a)) || null; }
+// 1.14: .sudoskin-Dateien und Links „sudo-ninja://store/<id>“ von der Infoseite
+const skinArg = argv => (argv || []).slice(1).find(a => /\.sudoskin$/i.test(String(a)) && fs.existsSync(a)) || null;
+const storeArg = argv => { const a = (argv || []).find(x => /^sudo-ninja:\/\//i.test(String(x))); if (!a) return null; const m = String(a).match(/^sudo-ninja:\/\/store\/?([a-z0-9-]{2,40})?/i); return m ? (m[1] ? m[1].toLowerCase() : '') : null; };
+function handleArgs(argv) {
+  const p = pluginArg(argv); if (p) { offerPlugin(p); return true; }
+  const s = skinArg(argv); if (s) { offerSkin(s); return true; }
+  const st = storeArg(argv);
+  if (st !== null) { const hit = st && skinStore ? skinStore.catalog().find(x => x.id === st) : null; openSkinStore(hit ? hit.key : null); return true; }
+  return false;
+}
 // Rückfrage vor dem Hinzufügen – eine Datei aus einer Mail soll nicht unbemerkt hineinrutschen
 async function offerPlugin(file) {
   if (!plugins) { setTimeout(() => offerPlugin(file), 1000); return; }
@@ -1848,6 +1995,7 @@ app.whenReady().then(() => {
     screen.getDisplayNearestPoint = p => fake.find(d => inside(d, p)) || fake[0];
   }
   loadSettings(); applyLang();
+  skinStore = createSkinStore({ assetsDir: path.join(__dirname, 'assets'), dataDir: app.getPath('userData'), log: writeLog, getSettings: () => settings, saveSettings });
   createWindow();
   const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray.png'));
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon);
@@ -1877,6 +2025,9 @@ app.whenReady().then(() => {
   if (TEST && process.env.SUDO_OPEN_KB) setTimeout(() => openKb(process.env.SUDO_OPEN_KB === '1' ? '' : process.env.SUDO_OPEN_KB), Number(process.env.SUDO_OPEN_KB_MS) || 6000);
   if (TEST && process.env.SUDO_OVERLAY_JS) setTimeout(() => win.webContents.executeJavaScript(process.env.SUDO_OVERLAY_JS).then(r => console.log('[overlay-js]', JSON.stringify(r))).catch(e => console.log('[overlay-js] Fehler', e.message)), Number(process.env.SUDO_OVERLAY_MS) || 4000);
   if (TEST && process.env.SUDO_OPEN_HISTORY) setTimeout(openHistory, Number(process.env.SUDO_OPEN_HISTORY) || 1500);
+  // 1.14: Skin-Store öffnen (Wert = Verzögerung in ms oder ein Skin-Schlüssel) und JS darin ausführen ([store-js])
+  if (TEST && process.env.SUDO_OPEN_STORE) setTimeout(() => openSkinStore(/\//.test(process.env.SUDO_OPEN_STORE) ? process.env.SUDO_OPEN_STORE : null), /^\d+$/.test(process.env.SUDO_OPEN_STORE) ? Number(process.env.SUDO_OPEN_STORE) : 1500);
+  if (TEST && process.env.SUDO_STORE_JS) setTimeout(() => { if (storeWin) storeWin.webContents.executeJavaScript(process.env.SUDO_STORE_JS, true).then(r => console.log('[store-js]', JSON.stringify(r))).catch(e => console.log('[store-js] Fehler', e.message)); }, Number(process.env.SUDO_STORE_JS_MS) || 4000);
   // 1.12: Plugin hinzufügen / öffnen / JS darin ausführen (Ergebnis als [plugin-js] in der Konsole)
   if (TEST && process.env.SUDO_PLUGIN_ADD) setTimeout(() => { console.log('[plugin-add]', JSON.stringify(plugins.addFile(process.env.SUDO_PLUGIN_ADD))); pluginsChanged(); }, 1000);
   if (TEST && process.env.SUDO_OPEN_PLUGIN) setTimeout(() => { const v = process.env.SUDO_OPEN_PLUGIN.split('/'); console.log('[plugin-open]', plugins.open(v.length > 1 ? v[0] : 'eigene', v.pop())); }, Number(process.env.SUDO_OPEN_PLUGIN_MS) || 1800);
@@ -1927,14 +2078,25 @@ app.whenReady().then(() => {
   plugins = createPlugins({ dir: path.join(app.getPath('userData'), 'plugins'), log: writeLog, electron: require('electron'), icon: path.join(__dirname, 'assets', 'icon.png'), devTools: TEST });
   // 1.13: Endung .sudoplugin mit eigenem Symbol für diesen Benutzer eintragen (nur gebaute App; im Test unter .sudoplugintest)
   if (app.isPackaged || (TEST && process.env.SUDO_ASSOC_TEST)) {
-    const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    const exe = process.env.APPIMAGE || process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
     const test = !app.isPackaged;
+    // Linux: Exec-Zeile der .desktop-Datei (Pfad in Anführungszeichen, Sonderzeichen geschützt)
+    const dq = s => '"' + String(s).replace(/(["`$\\])/g, '\\$1') + '"';
+    const linux = { exec: dq(exe) + (test ? ' ' + dq(app.getAppPath()) : ''), iconPng: path.join(__dirname, 'assets', 'plugin-file.png') };
     plugins.registerFileType({ ext: test ? '.sudoplugintest' : '.sudoplugin', progId: test ? 'Sudo.PluginTest' : 'Sudo.Plugin', typeName: T('Sudo-Plugin'),
       command: test ? `"${exe}" "${app.getAppPath()}" "%1"` : `"${exe}" "%1"`, iconSrc: path.join(__dirname, 'assets', 'plugin-file.ico'), iconDir: app.getPath('userData'),
-      notify: () => win32.notifyAssocChanged() }).then(r => { if (TEST) console.log('[assoc]', JSON.stringify(r)); });
+      notify: () => win32.notifyAssocChanged(), linux }).then(r => { if (TEST) console.log('[assoc]', JSON.stringify(r)); });
+    // 1.14: .sudoskin mit eigenem Symbol; unter Linux zusätzlich das Link-Protokoll sudo-ninja:// (Infoseite → Skin-Store)
+    plugins.registerFileType({ ext: test ? '.sudoskintest' : '.sudoskin', progId: test ? 'Sudo.SkinTest' : 'Sudo.Skin', typeName: T('Sudo-Skin'),
+      command: test ? `"${exe}" "${app.getAppPath()}" "%1"` : `"${exe}" "%1"`, iconSrc: path.join(__dirname, 'assets', 'skin-file.ico'), iconDir: app.getPath('userData'),
+      notify: () => win32.notifyAssocChanged(), linux: { ...linux, kind: 'skin', iconPng: path.join(__dirname, 'assets', 'skin-file.png'), scheme: test ? '' : 'sudo-ninja' } })
+      .then(r => { if (TEST) console.log('[assoc-skin]', JSON.stringify(r)); });
+    // Windows: Link-Protokoll für den angemeldeten Benutzer (Electron trägt es unter HKCU ein)
+    if (!test && process.platform === 'win32') { try { app.setAsDefaultProtocolClient('sudo-ninja', exe, []); } catch (e) { writeLog('Link-Protokoll: ' + e.message); } }
   }
-  { const f = pluginArg(process.argv); if (f) setTimeout(() => offerPlugin(f), 1500); }
+  setTimeout(() => handleArgs(process.argv), 1500);
   zentraleApi = createZentrale({ getSettings: () => settings, setSettings: z => { settings.zentrale = z; saveSettings(); }, onOps: o => ops.update(o),
+    onSkins: k => { skinStore.syncZentrale(k, id => zentraleApi.skinGet(id)).then(ch => { if (ch) storeChanged(); }); },
     onPlugins: p => { plugins.setUserAllowed(p.user !== false); plugins.syncZentrale(p.items, id => zentraleApi.pluginGet(id)).then(pluginsChanged); pluginsChanged(); }, onMedia: () => { if (tray) buildTrayMenu(); }, onKb: () => { if (tray) buildTrayMenu(); },
     onDex: () => { if (checkin) checkin.configChanged(); if (tray) buildTrayMenu(); if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('center-zentrale', zentraleApi.status()); },
     encrypt: secretEnc, decrypt: secretDec, fetch: (u, o) => net.fetch(u, o), log: writeLog, version: app.getVersion(), lang: () => effLang(), test: TEST,
@@ -1996,7 +2158,7 @@ app.whenReady().then(() => {
   registerShortcuts();
   initUpdater();
   // Bei zentraler Installation (MSI/Intune) beim allerersten Start automatisch mitstarten
-  if (!settings.tourDone && /program files/i.test(process.execPath) && !settings.autostart) { setAutostart(true); writeSettings(); }
+  if (!settings.tourDone && (/program files/i.test(process.execPath) || /^\/(opt|usr)\//.test(process.execPath)) && !settings.autostart) { setAutostart(true); writeSettings(); }
   buildTrayMenu();
   workTimer = setInterval(() => { try { work.tick(); } catch (e) { console.error('[work]', e.message); } }, 1000);
   setInterval(() => work.save(), 60000);

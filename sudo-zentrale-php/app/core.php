@@ -2,7 +2,7 @@
 // core.php – Helfer: Antworten, Anfragen, Geräte, Meldungen, Admin-Anmeldung (Entra ID / Passwort)
 declare(strict_types=1);
 
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.14.0';
 const VISIT_KINDS = ['note', 'coffee', 'duck', 'pizza', 'confetti', 'bug', 'duel'];
 const EVENT_TYPES = ['backup_failed', 'server_down', 'deploy_ok', 'ticket', 'bug', 'message', 'success', 'warning', 'video', 'music'];
 
@@ -184,12 +184,12 @@ function unsign(?string $v): ?string
 function entra_on(array $cfg): bool { $e = $cfg['entra'] ?? []; return !empty($e['tenant']) && !empty($e['client_id']) && !empty($e['client_secret']); }
 function local_on(array $cfg): bool { return !empty($cfg['admin_password']) && (!empty($cfg['local_login']) || !entra_on($cfg)); }
 
-function create_session(Db $db, array $cfg, string $user, ?string $name, string $via): void
+function create_session(Db $db, array $cfg, string $user, ?string $name, string $via, int $hours = 10): void
 {
     $id = token(32);
     $db->run('INSERT INTO sessions (id, user, name, via, csrf, created, expires) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [sha($id), $user, $name ?: $user, $via, token(24), now_ms(), now_ms() + 10 * 3600e3]);
-    set_cookie($cfg, 'sz_sess', signed($id), 10 * 3600);
+        [sha($id), $user, $name ?: $user, $via, token(24), now_ms(), now_ms() + $hours * 3600e3]);
+    set_cookie($cfg, 'sz_sess', signed($id), $hours * 3600);
     $db->audit($user, 'login', $via);
 }
 function current_session(Db $db): ?array

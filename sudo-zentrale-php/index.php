@@ -11,7 +11,7 @@ if ($dir !== '' && str_starts_with($path, $dir)) $path = substr($path, strlen($d
 
 // Eingebauter PHP-Server (Test): echte Dateien direkt ausliefern, interne Ordner sperren
 if (PHP_SAPI === 'cli-server') {
-    if (preg_match('#^/(app|data)(/|$)|^/config(\.sample)?\.php$#', $path)) { http_response_code(403); exit; }
+    if (preg_match('#^/(app|data)(/|$)|^/config[^/]*$|\.(bak|old|orig|save|swp|tmp)$|~$#i', $path)) { http_response_code(403); exit; }
     if ($path !== '/' && is_file($base . $path)) return false;
     if (is_dir($base . $path) && is_file($base . rtrim($path, '/') . '/index.html')) { readfile($base . rtrim($path, '/') . '/index.html'); exit; }
 }
@@ -25,15 +25,21 @@ require $base . '/app/media.php';
 require $base . '/app/kb.php';
 require $base . '/app/dex.php';
 require $base . '/app/plugins.php';
+require $base . '/app/auth.php';
+require $base . '/app/skins.php';
 
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header('X-Frame-Options: DENY');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$hasConfig = is_file($base . '/config.php');
+// 1.14: config.php darf auch außerhalb des Web-Ordners liegen – sicherer, weil der Webserver sie dann gar nicht ausliefern kann.
+// Reihenfolge: Umgebungsvariable SUDO_CONFIG, sudo-zentrale-config.php eine Ebene über diesem Ordner, config.php hier.
+$cfgFile = (string) (getenv('SUDO_CONFIG') ?: '');
+if ($cfgFile === '' || !is_file($cfgFile)) $cfgFile = is_file(dirname($base) . '/sudo-zentrale-config.php') ? dirname($base) . '/sudo-zentrale-config.php' : $base . '/config.php';
+$hasConfig = is_file($cfgFile);
 if (!$hasConfig && $path !== '/setup') { header('Location: ' . $dir . '/setup', true, 302); exit; }
-$cfg = $hasConfig ? require $base . '/config.php' : ['public_url' => '', 'db' => ['dsn' => 'sqlite::memory:']];
+$cfg = $hasConfig ? require $cfgFile : ['public_url' => '', 'db' => ['dsn' => 'sqlite::memory:']];
 $cfg['public_url'] = rtrim((string) ($cfg['public_url'] ?? ''), '/');
 $cfg['poll_seconds'] = max(5, min(120, (int) ($cfg['poll_seconds'] ?? 15)));
 
@@ -139,7 +145,7 @@ if ($route === 'POST /api/poll') {
     music_maybe_watch_later($db, $cfg);                  // 1.8.1: gesperrte Musikwünsche überspringen
     kb_maybe_sync_later($db, $cfg);                      // 1.9: SharePoint-Anleitungen abgleichen
     $s = $db->settings();
-    json_out(['device' => ['id' => $d['id'], 'name' => $d['name'], 'groups' => groups_of($d)], 'ai' => ai_public($s), 'visits' => visits_public($s, $db, $d), 'health' => health_public($s), 'quiz' => quiz_public($s, $db), 'ops' => ops_public($db, $d, $s), 'media' => media_public($db, $d, $s), 'kb' => kb_public($s, $db), 'dex' => dex_public($db, $d, $s), 'plugins' => plugins_public($db, $d, $s), 'events' => $events, 'pollSec' => $cfg['poll_seconds']]);
+    json_out(['device' => ['id' => $d['id'], 'name' => $d['name'], 'groups' => groups_of($d)], 'ai' => ai_public($s), 'visits' => visits_public($s, $db, $d), 'health' => health_public($s), 'quiz' => quiz_public($s, $db), 'ops' => ops_public($db, $d, $s), 'media' => media_public($db, $d, $s), 'kb' => kb_public($s, $db), 'dex' => dex_public($db, $d, $s), 'plugins' => plugins_public($db, $d, $s), 'skins' => skins_public($db, $d, $s), 'events' => $events, 'pollSec' => $cfg['poll_seconds']]);
 }
 
 /* ---------- Plugins (1.12): HTML eines Plugins für dieses Gerät ---------- */
@@ -147,6 +153,13 @@ if ($method === 'GET' && preg_match('#^/api/plugins/([a-z0-9-]{2,40})$#', $path,
     $d = device_from($db) ?? fail(401, 'Gerät unbekannt oder gesperrt.');
     if (!$db->limit('plug:' . $d['id'], 300, 3600)) fail(429, 'Zu viele Abrufe – kurz warten.');
     json_out(plugin_for($db, $d, $mm[1]));
+}
+
+/* ---------- Skins (1.14): Grafik eines Skins für dieses Gerät ---------- */
+if ($method === 'GET' && preg_match('#^/api/skins/([a-z0-9-]{2,40})$#', $path, $mm)) {
+    $d = device_from($db) ?? fail(401, 'Gerät unbekannt oder gesperrt.');
+    if (!$db->limit('skin:' . $d['id'], 300, 3600)) fail(429, 'Zu viele Abrufe – kurz warten.');
+    json_out(skin_for($db, $d, $mm[1]));
 }
 
 /* ---------- Security-Quiz (1.5) ---------- */
@@ -427,19 +440,11 @@ if ($route === 'POST /api/events') {
 /* =====================================================================
    Admin-Anmeldung
    ===================================================================== */
-if ($route === 'GET /auth/info') json_out(['entra' => entra_on($cfg), 'password' => local_on($cfg), 'version' => APP_VERSION]);
+if ($route === 'GET /auth/info') json_out(['entra' => entra_on($cfg), 'password' => local_on($cfg), 'totp' => local_on($cfg) && local_security($cfg)['totp'], 'version' => APP_VERSION]);
 if ($route === 'GET /auth/login') { if (!entra_on($cfg)) { header('Location: ' . $cfg['public_url'] . '/admin/?fehler=' . rawurlencode('Entra ID ist nicht eingerichtet.')); exit; } entra_start($cfg); }
 if ($route === 'GET /auth/callback') entra_callback($db, $cfg);
-if ($route === 'POST /auth/password') {
-    if (!local_on($cfg)) fail(404, 'Passwort-Anmeldung ist ausgeschaltet.');
-    if (!$db->limit('login:' . client_ip(), 8, 900)) fail(429, 'Zu viele Versuche. In 15 Minuten noch mal.');
-    $pw = (string) (body()['password'] ?? '');
-    $stored = (string) $cfg['admin_password'];
-    $ok = str_starts_with($stored, '$2y$') || str_starts_with($stored, '$argon2') ? password_verify($pw, $stored) : ($pw !== '' && hash_equals(sha($stored), sha($pw)));
-    if (!$ok) { $db->audit(client_ip(), 'login_failed', 'passwort'); fail(401, 'Passwort falsch.'); }
-    create_session($db, $cfg, 'admin', 'Admin (Passwort)', 'passwort');
-    json_out(['ok' => true]);
-}
+// 1.14: Notfall-Zugang mit Hash-Pflicht, zweitem Faktor, Adressfreigabe und Sperren (app/auth.php)
+if ($route === 'POST /auth/password') local_login($db, $cfg);
 if ($route === 'POST /auth/logout') {
     $s = current_session($db);
     if ($s) { $db->run('DELETE FROM sessions WHERE id = ?', [$s['id']]); $db->audit($s['user'], 'logout'); }

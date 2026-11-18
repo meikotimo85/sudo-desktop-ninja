@@ -27,13 +27,15 @@ echo   [1] Portable EXE         - ohne Installation, zum Ausprobieren
 echo   [2] Setup mit Updates    - fuer dich und Kollegen, aktualisiert sich selbst
 echo   [3] MSI fuer Intune      - zentrale Verteilung, Installation fuer alle Benutzer
 echo   [4] Alles                - 1 + 2 + 3
+echo   [5] Linux (AppImage)     - braucht den Windows-Entwicklermodus, sonst ueber GitHub (siehe LIESMICH)
 echo.
-choice /c 1234 /n /m "Auswahl (1-4): "
+choice /c 12345 /n /m "Auswahl (1-5): "
 set WAHL=%errorlevel%
 if %WAHL%==1 set ZIEL=dist:portable
 if %WAHL%==2 set ZIEL=dist:setup
 if %WAHL%==3 set ZIEL=dist:msi
 if %WAHL%==4 set ZIEL=dist:all
+if %WAHL%==5 set ZIEL=dist:appimage
 
 rem Update-Adresse fuer das Selbst-Update: aus update-adresse.txt (nicht im Repo), sonst die Beispieladresse aus package.json
 set UPDURL=
@@ -45,11 +47,13 @@ if defined UPDURL (echo Update-Adresse: %UPDURL%) else (echo Hinweis: keine upda
 echo.
 echo Baue ... das dauert ein paar Minuten. Beim ersten Mal laedt der Builder noch Werkzeuge nach.
 call npm run %ZIEL% %EXTRA%
+if errorlevel 1 if %WAHL%==5 ( echo. & echo Linux-Bau fehlgeschlagen. Meist fehlt der Windows-Entwicklermodus ^(Einstellungen - System - Fuer Entwickler^). Alternative: GitHub - Actions - "Linux bauen". & pause & exit /b 1 )
 if errorlevel 1 ( echo. & echo Build fehlgeschlagen. Bitte die Meldungen oben an Claude schicken. & pause & exit /b 1 )
 
 echo.
 echo Fertig. Die Dateien liegen im Ordner dist:
-dir /b dist\*.exe dist\*.msi dist\latest.yml 2>nul
+dir /b dist\*.exe dist\*.msi dist\*.AppImage dist\latest*.yml 2>nul
+if %WAHL%==5 goto upd
 if %WAHL%==2 goto upd
 if %WAHL%==4 goto upd
 goto ende
@@ -57,6 +61,11 @@ goto ende
 echo.
 echo Fuer automatische Updates diese Dateien auf deinen Webspace hochladen
 if defined UPDURL (echo Adresse: %UPDURL%) else (echo Adresse fehlt - bitte update-adresse.txt anlegen und neu bauen)
+if %WAHL%==5 (
+  echo   - dist\latest-linux.yml
+  echo   - dist\Sudo-*.AppImage
+  goto ende
+)
 echo   - dist\latest.yml
 echo   - dist\Sudo-Setup-*.exe
 echo   - dist\Sudo-Setup-*.exe.blockmap

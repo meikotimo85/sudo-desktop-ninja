@@ -1,4 +1,4 @@
-# Sudo – Desktop-Ninja 1.13.0
+# Sudo – Desktop-Ninja 1.14.0
 
 Sudo lebt auf deinem Windows-Desktop: Er läuft auf der Taskleiste, springt auf die Oberkanten deiner echten Fenster, tippt mit, wenn du tippst, erinnert dich an Pausen und meldet sich, wenn in der IT etwas brennt.
 
@@ -96,6 +96,17 @@ Einstellungen → **KI: Frag Sudo**:
 - **IT-Lage mitschicken:** Uhrzeit, Microsoft-/Azure-Störungen und neue Sicherheitswarnungen als Hintergrund – so beantwortet Sudo auch „Ist Microsoft gerade gestört?“. Tasteneingaben und Fenstertitel gehen nie mit.
 - Gespeichert wird nur der Verbrauch (Anzahl, Token, Kosten), keine Fragen oder Antworten. Der Gesprächsverlauf bleibt bis „Neu“ bzw. zum Beenden im Speicher.
 - Die Fragen gehen an die Claude-API von Anthropic: bitte keine Passwörter, Zugangsdaten oder Kundendaten eingeben.
+
+## Linux (ab 1.14)
+
+Sudo läuft auch unter Linux (getestet für Ubuntu/Debian mit GNOME, KDE, Xfce):
+
+- **AppImage** (`Sudo-<Version>.AppImage`): ausführbar machen und starten, aktualisiert sich selbst (Update-Ordner wie unter Windows, dazu `latest-linux.yml`). **.deb** (`sudo-desktop_<Version>_amd64.deb`): über die Paketverwaltung, startet beim ersten Mal automatisch mit.
+- **Fensterkanten** liest Sudo über X11. Unter Wayland startet er über XWayland, weil Wayland Fenstern das freie Platzieren verbietet (`SUDO_WAYLAND=1` schaltet das zum Ausprobieren ab).
+- **Tray:** GNOME zeigt Tray-Symbole nur mit der Erweiterung „AppIndicator“. Ohne sie geht alles über den **Rechtsklick auf Sudo**.
+- **Ninja-Rad:** Terminal, Terminal (Root, fragt über pkexec), Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt – es wird das erste vorhandene Programm genommen.
+- **Zentrale vorgeben:** `sudo sh linux/zentrale-vorgabe.sh https://sudo.example.com SZ-…` schreibt `/etc/sudo-desktop/zentrale.json` (auch über NinjaOne/Ansible mit `SudoUrl`/`SudoCode`).
+- **Bauen:** am einfachsten auf GitHub → Actions → „Linux bauen“ (Ergebnis unter „Artifacts“; Update-Adresse als Variable `SUDO_UPDATE_URL`). Unter Windows geht `BAUEN.bat` → [5] nur mit eingeschaltetem Entwicklermodus (Einstellungen → System → Für Entwickler), weil die AppImage symbolische Links braucht.
 
 ## Sudo-Zentrale
 
@@ -233,9 +244,11 @@ Die IT kann in der Zentrale YouTube-Kanäle eintragen (z. B. Technik-Kanäle). E
 
 **Eigene Kanäle (ab 1.8.1):** Unter Einstellungen → Verhalten → **YouTube-Videos** kann jeder bis zu 10 eigene Kanäle eintragen – als Link (`https://www.youtube.com/@kanal`), als `@Handle` oder als Kanal-ID (`UC…`). Sudo schaut alle 15 Minuten nach (das erste Mal 2 Minuten nach dem Start) und zeigt neue Videos genauso an. Shorts lassen sich pro Kanal zuschalten. Das funktioniert auch ohne Zentrale: Der PC fragt die öffentlichen Feeds direkt bei YouTube ab, die Liste bleibt auf dem PC. Kommt dasselbe Video auch über einen Kanal der IT, zeigt Sudo es nur einmal. Die Firewall muss `www.youtube.com` erlauben.
 
-## Ninja-Leiste (mittlere Maustaste)
+## Ninja-Rad und Ninja-Leiste (mittlere Maustaste)
 
-**Mausrad auf Sudo drücken** → über ihm klappt eine Schnellstart-Leiste auf. Mitgeliefert (einzeln abschaltbar unter Einstellungen → **Ninja-Leiste**): PowerShell, PowerShell (Admin), CMD, Windows Terminal, Explorer, Task-Manager, Windows-Einstellungen, Rechner, Bildschirmausschnitt, Registry (Admin), Dienste sowie Sudos eigene Fenster (Werkzeugkasten, Frag Sudo, Notiz, IT-Lage).
+**Mausrad auf Sudo drücken** → ab 1.14 erscheint das **Ninja-Rad**: runde Symbole im Kreis um Sudo, der Name steht beim Darüberfahren über seinem Kopf. Plugins erscheinen darin von selbst (violett umrandet, bis zu 8) und lassen sich unter Einstellungen → Ninja-Leiste → „Plugins im Rad“ einzeln ausblenden. Wer die alte Darstellung mag, stellt dort „Darstellung: Leiste“ ein. **Rechtsklick auf Sudo** öffnet sein komplettes Menü (dasselbe wie am Tray-Symbol).
+
+In der Leiste-Darstellung klappt über Sudo eine Schnellstart-Leiste auf. Mitgeliefert (einzeln abschaltbar unter Einstellungen → **Ninja-Leiste**): PowerShell, PowerShell (Admin), CMD, Windows Terminal, Explorer, Task-Manager, Windows-Einstellungen, Rechner, Bildschirmausschnitt, Registry (Admin), Dienste sowie Sudos eigene Fenster (Werkzeugkasten, Frag Sudo, Notiz, IT-Lage).
 
 **Eigene Einträge** (bis zu 8, insgesamt höchstens 12 in der Leiste): Programm, Ordner (auch `\\server\freigabe`), Datei oder Link (`https:`, `mailto:`, `ms-settings:` …), optional mit Argumenten und „Als Administrator starten“ (Windows fragt per UAC). Beispiele: PuTTY mit gespeicherter Sitzung, das Kundenportal, ein Skript-Ordner.
 
@@ -479,6 +492,15 @@ Der Webhook oben ist nur auf deinem PC erreichbar. Damit auch Skripte auf deinem
 In deinen PHP-Projekten bindest du `examples/sudo-relay-notify.php` ein und rufst zum Beispiel `sudoRelay('backup_failed', ['kunde' => 'Muster GmbH']);` auf.
 
 Sicherheit: Der send_token darf nur senden, der read_token nur abholen. Ereignisse werden nach 7 Tagen gelöscht (einstellbar in `config.php`). Der Ordner `relay/data/` ist per `.htaccess` gesperrt. War Sudo aus, holt er verpasste Ereignisse beim nächsten Start nach; sind es mehr als drei, fasst er sie in einer Sprechblase zusammen (Details im Ereignisprotokoll).
+
+## Skin-Store (ab 1.14)
+
+Neue Outfits für Sudo: Tray → **Skin → Skin-Store …** oder Einstellungen → Daten & Verbindungen → Skin-Store. Mitgeliefert sind 12 Skins (Ritter, Spartaner, Kenshi, Frost-Ninja, Fuchsgeist, IT-Wikinger, Netzwerk-Samurai, Cyber-Ninja, Lichtritter, Oni-Samurai, Schattenritter, Mecha-Samurai). Bezahlt wird mit **XP** (100 bis 600): „Kaufen“ fragt einmal nach, zieht die XP ab und merkt sich den Kauf auf diesem PC. Der Gürtel kann dabei sinken, Garderobe und Erfolge bleiben. Gekaufte Skins stehen danach auch im Tray unter „Skin“.
+
+- **Von der IT:** Die Sudo-Zentrale kann eigene Skins mit XP-Preis an alle, Gruppen oder Personen verteilen oder alle Skins kostenlos machen.
+- **Als Datei:** Eine `.sudoskin`-Datei (eigenes Symbol im Explorer) per Doppelklick hinzufügen – sie gehört dir sofort. Im Store unter „Skin-Datei hinzufügen …“ geht es auch. Format: JSON mit `format: "sudoskin"`, `name`, `png` (Base64 der `sudo-sheet.png`) und optional `sheet` (Inhalt der `sudo-sheet.json`).
+- **Infoseite:** Abschnitt „Skin-Store“ mit Galerie. „Im Sudo ansehen“ öffnet den Store direkt beim Skin (Link `sudo-ninja://store/<id>`). Die Galerie erzeugt `node tools/build-website-skins.js` aus `assets/skins`.
+- **Neue mitgelieferte Skins:** Grafik als `assets/skins/<id>/sudo-sheet.png` (Raster der Standardgrafik) ablegen und in `assets/skins/katalog.json` mit Name und Preis eintragen.
 
 ## Grafik und eigene Skins
 

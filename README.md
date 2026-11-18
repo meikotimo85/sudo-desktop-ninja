@@ -4,7 +4,7 @@
 
 Sudo ist ein kleiner Pixel-Ninja, der auf dem Windows-Desktop lebt. Er läuft über die Taskleiste, erinnert an Pausen und hilft bei Alltagsproblemen am PC. Über die **Sudo-Zentrale** erreicht die IT damit alle Mitarbeitenden: Meldungen, Störungen, Neustart-Aufforderungen, Quiz und Wissen aus dem Intranet kommen dort an, wo sie gesehen werden.
 
-Stand: Client 1.13.0, Zentrale 1.13.0.
+Stand: Client 1.14.0 (Windows und Linux), Zentrale 1.14.0.
 
 ## Was Sudo kann
 
@@ -22,13 +22,15 @@ Stand: Client 1.13.0, Zentrale 1.13.0.
 - Ereignis-API für Skripte und Monitoring, mit Regeln, die Tickets in verständliche Meldungen übersetzen
 - Stimmungsbarometer ohne Gerätebezug, Start-Checkliste für neue Geräte
 - Plugins: eigene kleine Werkzeuge als HTML-Datei an alle oder einzelne Gruppen verteilen, abgeschottet ohne Internet
+- Skin-Store: neue Outfits für Sudo, bezahlt mit XP – mitgeliefert, von der IT über die Zentrale oder als .sudoskin-Datei
+- Notfall-Zugang der Verwaltung mit zweitem Faktor (Authenticator-App), Adressfreigabe und Sperren
 - Verwaltung mit Anmeldung über Microsoft Entra ID, Protokoll aller Aktionen
 
 ## Aufbau
 
 | Ordner | Inhalt | Technik |
 |---|---|---|
-| [`sudo-desktop/`](sudo-desktop/) | Client für Windows | Electron, Vanilla JS |
+| [`sudo-desktop/`](sudo-desktop/) | Client für Windows und Linux (AppImage, .deb) | Electron, Vanilla JS |
 | [`sudo-zentrale-php/`](sudo-zentrale-php/) | Zentrale für normales Webhosting | PHP 8 und SQLite oder MySQL, ohne Composer und Cron |
 | [`sudo-zentrale/`](sudo-zentrale/) | Zentrale für Docker | Node 22, Fastify, SQLite |
 | [`sudo-website/`](sudo-website/) | Infoseite für Mitarbeitende | statisches HTML |

@@ -132,9 +132,17 @@
       const full = (d.custom || []).length >= 8;
       return [
         el('h2', { text: 'Ninja-Leiste' }),
-        el('p', { class: 'sub', text: 'Mit der mittleren Maustaste (Mausrad drücken) auf Sudo klappt die Leiste auf – Schnellstart für Konsole, Tools und eigene Programme. Höchstens 12 Einträge.' }),
+        el('p', { class: 'sub', text: 'Mit der mittleren Maustaste (Mausrad drücken) auf Sudo öffnet sich das Ninja-Rad – Schnellstart für Konsole, Tools, eigene Programme und Plugins. Höchstens 12 Einträge plus 8 Plugins. Rechtsklick auf Sudo zeigt sein Menü.' }),
         section('Leiste',
-          toggle('deckOn', 'Ninja-Leiste aktiv', 'Mittlere Maustaste auf Sudo öffnet die Leiste', d.on !== false)),
+          toggle('deckOn', 'Ninja-Leiste aktiv', 'Mittlere Maustaste auf Sudo öffnet Rad bzw. Leiste', d.on !== false),
+          d.on === false ? null : segmented('deckStyle', 'Darstellung', 'Rad: Symbole im Kreis um Sudo, Name beim Darüberfahren. Leiste: Reihe mit Beschriftung über Sudo.', d.style === 'leiste' ? 'leiste' : 'rad', [['rad', 'Rad'], ['leiste', 'Leiste']])),
+        // 1.14: Plugins erscheinen von selbst, einzeln ausblendbar
+        d.on === false ? null : section('Plugins im Rad',
+          ...((S().deckPlugins || []).length ? S().deckPlugins.map(p => {
+            const id = 'deckp_' + p.key.replace(/\W/g, '_'), inp = el('input', { type: 'checkbox', id, 'aria-label': p.name, on: { change: e => set('deckPlugin', { key: p.key, on: e.target.checked }) } });
+            inp.checked = p.shown;
+            return el('div', { class: 'row' }, el('div', { class: 't' }, el('b', { 'data-noi18n': '', text: p.name }), el('small', { text: p.source === 'zentrale' ? tr('Von deiner IT') : tr('Eigenes Plugin') })), el('label', { class: 'sw', for: id }, inp, el('i')));
+          }) : [el('p', { class: 'note', text: 'Noch keine Plugins. Neue Plugins erscheinen hier und im Rad von selbst.' })])),
         d.on === false ? null : section('Mitgeliefert',
           ...(S().deckBuiltin || []).map(b => {
             const id = 'deck_' + b.id, inp = el('input', { type: 'checkbox', id, 'aria-label': b.name, on: { change: e => set('deckBuiltin', { id: b.id, on: e.target.checked }) } });
@@ -309,9 +317,11 @@
             // 1.9: Skin-Auswahl – Farbvarianten und eigene Skins
             const sk = snap.skin || {}, list = sk.list || [];
             const selEl = el('select', { 'aria-label': 'Skin wählen', on: { change: async e => { await host.action('skinSet', e.target.value); snap = await host.get(); render(); } } },
-              ...list.map(s => el('option', { value: s.id, text: s.kind === 'user' ? s.name : tr(s.name), selected: s.id === sk.current })));
-            return el('div', { class: 'row' }, text('Aussehen', 'Farbvarianten oder eigene Skins – auch im Tray unter „Skin“'), selEl);
+              ...list.map(s => el('option', { value: s.id, text: s.kind === 'user' || s.kind === 'store' ? s.name : tr(s.name), selected: s.id === sk.current })));
+            return el('div', { class: 'row' }, text('Aussehen', 'Farbvarianten, gekaufte und eigene Skins – auch im Tray unter „Skin“'), selEl);
           })(),
+          // 1.14: Skin-Store
+          el('div', { class: 'row' }, text('Skin-Store', 'Neue Outfits für Sudo – bezahlt wird mit XP'), el('button', { class: 'act primary', text: 'Öffnen', on: { click: () => host.action('skinStore') } })),
           el('div', { class: 'row' }, text('Eigene Skins', 'Je Skin ein Unterordner mit sudo-sheet.png und sudo-sheet.json. Vorlage und Anleitung liegen im Ordner.'), el('button', { class: 'act', text: 'Ordner öffnen', on: { click: () => host.action('skinFolder') } })),
           button('Skin neu laden', 'Nach dem Bearbeiten', 'Neu laden', 'skinReload'))
       ];

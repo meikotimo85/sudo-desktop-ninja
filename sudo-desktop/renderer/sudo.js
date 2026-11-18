@@ -749,8 +749,11 @@ const DICON = {
   shield: ['.TTTTTTT.', 'TTTTWTTTT', 'TTTTWTTTT', 'TTWWWWWTT', 'TTTTWTTTT', '.TTTWTTT.', '..TTTTT..', '...TTT...', '....T....'],
   star:   ['....Y....', '...YYY...', 'YYYYYYYYY', '.YYYYYYY.', '..YYYYY..', '.YYY.YYY.', 'YY.....YY'],
   heal:   ['.KKKKKKK.', 'KWWWRWWWK', 'KWWWRWWWK', 'KWRRRRRWK', 'KWWWRWWWK', 'KWWWRWWWK', '.KKKKKKK.'],
-  globe:  ['..TTTTT..', '.TBTTTBT.', 'TBBBTBBBT', 'TTTTTTTTT', 'TBBTTTBBT', 'TTTTTTTTT', '.TBTTTBT.', '..TTTTT..']
+  globe:  ['..TTTTT..', '.TBTTTBT.', 'TBBBTBBBT', 'TTTTTTTTT', 'TBBTTTBBT', 'TTTTTTTTT', '.TBTTTBT.', '..TTTTT..'],
+  // 1.14: Puzzleteil für Plugins (wie im Tray-Menü)
+  plugin: ['...KKK...', '..KVVVK..', 'KKKVVVKK.', 'KVVVVVVKK', 'KVWVVVVVK', 'KVVVVVVKK', 'KVVVVVVK.', 'KKKKKKKK.']
 };
+DPAL.V = '#9c6ee6';
 function deckIcon(name) {
   const rows = DICON[name] || DICON.star, c = document.createElement('canvas');
   c.width = 9; c.height = 9;
@@ -759,9 +762,47 @@ function deckIcon(name) {
   return c;
 }
 const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+/* Ninja-Rad (1.14): dieselben Einträge im Kreis um Sudo; der Name erscheint unter ihm */
+let deckRadial = false, deckBoxes = [], deckRing = null;
+function openRadial(d) {
+  const items = d.items || [];
+  if (!items.length) return false;
+  const n = items.length, R = Math.max(82, Math.ceil(n * 60 / (2 * Math.PI)));
+  const lbl = mk('div', 'lbl', T('Ninja-Rad'));
+  const rest = () => { lbl.textContent = T('Ninja-Rad'); lbl.classList.remove('plugin'); };
+  const btns = items.map((it, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    const dx = Math.round(R * Math.cos(a)) - 26, dy = Math.round(R * Math.sin(a)) - 26;
+    const b = mk('button', 'ri' + (it.plugin ? ' plugin' : ''));
+    const name = T(it.name) + (it.admin ? ' · ' + T('als Administrator') : '') + (it.own ? ' ' + T('(eigenes)') : '');
+    b.title = name; b.style.setProperty('--x', dx + 'px'); b.style.setProperty('--y', dy + 'px');
+    b.style.setProperty('--x0', '-26px'); b.style.setProperty('--y0', '-26px'); b.style.transitionDelay = (i * 14) + 'ms';
+    b.append(deckIcon(it.icon));
+    if (it.admin) b.append(mk('i', null, 'A'));
+    b.addEventListener('pointerenter', () => { lbl.textContent = name; lbl.classList.toggle('plugin', !!it.plugin); });
+    b.addEventListener('pointerleave', rest);
+    b.addEventListener('click', () => runDeck(it));
+    return { b, dx, dy };
+  });
+  deckRing = { R, btns };
+  deckEl.className = 'radial';
+  deckEl.replaceChildren(lbl, ...btns.map(x => x.b));
+  requestAnimationFrame(() => requestAnimationFrame(() => deckEl.classList.add('open')));
+  return true;
+}
 function openDeck() {
   const d = settings.deck || {};
   if (d.on === false || inMeeting || game) return;
+  deckRadial = d.style !== 'leiste' && openRadial(d);
+  if (deckRadial) {
+    deckOpen = true; deckIdleAt = now; deckEl.hidden = false;
+    if (N.mode === 'ground') { startAct('idle', { dur: 20 }); react('victory', null, .6); }
+    bub.hidden = true;
+    beep(660, .05, 'square', .03); beep(990, .06, 'square', .03, .06);
+    placeDeck(); setTimeout(syncIgnore, 20);
+    return;
+  }
+  deckEl.className = '';
   const head = mk('div', 'dh'); head.append(mk('b', null, T('Ninja-Leiste')));
   const x = mk('button', 'dx', '✕'); x.title = T('Schließen'); x.addEventListener('click', closeDeck); head.append(x);
   const row = mk('div', 'row');
@@ -782,11 +823,24 @@ function openDeck() {
 }
 function closeDeck() {
   if (!deckOpen) return;
-  deckOpen = false; deckEl.hidden = true; deckRect = null; deckHover = false;
+  deckOpen = false; deckEl.hidden = true; deckRect = null; deckHover = false; deckBoxes = []; deckRing = null; deckRadial = false;
+  deckEl.classList.remove('open');
   setTimeout(syncIgnore, 30);
 }
 function placeDeck() {
   if (!deckOpen) return;
+  if (deckRadial && deckRing) {
+    // Mitte des Rads = Mitte von Sudo, aber so verschoben, dass alle Schaltflächen auf dem Bildschirm bleiben
+    const m = deckRing.R + 34;
+    const cx = clamp(N.x, m, W - m), cy = clamp(N.y - N.lift - (TOP - 1) * S / 2, m, Math.min(H, FLOOR || H) - m);
+    deckEl.style.transform = `translate(${Math.round(cx)}px,${Math.round(cy)}px)`;
+    // Name über Sudos Kopf (das Rad kann gegenüber Sudo verschoben sein)
+    const lbl = deckEl.firstChild;
+    if (lbl) lbl.style.transform = `translate(calc(-50% + ${Math.round(N.x - cx)}px), ${Math.round(N.y - N.lift - (TOP - 1) * S - 30 - cy)}px)`;
+    deckBoxes = deckRing.btns.map(({ dx, dy }) => [cx + dx - 3, cy + dy - 3, cx + dx + 55, cy + dy + 55].map(Math.round));
+    deckRect = null;
+    return;
+  }
   const w = deckEl.offsetWidth, h = deckEl.offsetHeight;
   const x = clamp(N.x - w / 2, 8, W - w - 8);
   let y = N.y - TOP * S - N.lift - h - 12;
@@ -916,6 +970,7 @@ let lastBoxes = '';
 function sendHitboxes() {
   const boxes = [];
   if (N.mode !== 'poof') boxes.push([N.x - 9 * S, N.y - (TOP - 1) * S - N.lift, N.x + 9 * S, N.y].map(Math.round));
+  if (deckOpen && deckRadial) boxes.push(...deckBoxes);      // vor den Bugs, damit das Rad nie abgeschnitten wird
   for (const bg of bugs) { const r = 6 * S + 4; boxes.push([bg.x - r, bg.y - r, bg.x + r, bg.y + r].map(Math.round)); }
   if (!bub.hidden && bub.dataset.link && bubRect) boxes.push(bubRect);
   for (const k of document.querySelectorAll('.keep')) { const r = k.getBoundingClientRect(); boxes.push([r.left, r.top, r.right, r.bottom].map(Math.round)); }
@@ -932,7 +987,8 @@ function syncIgnore() { sendHitboxes(); }
 nin.addEventListener('pointerdown', e => {
   if (N.mode === 'poof') return;
   e.preventDefault();
-  if (e.button === 1) { deckOpen ? closeDeck() : openDeck(); return; }   // mittlere Maustaste: Ninja-Leiste
+  if (e.button === 1) { deckOpen ? closeDeck() : openDeck(); return; }   // mittlere Maustaste: Ninja-Rad bzw. -Leiste
+  if (e.button === 2) { if (deckOpen) closeDeck(); if (host.trayMenu) host.trayMenu(); return; }   // 1.14: rechte Maustaste: Sudo-Menü
   if (e.button !== 0) return;
   if (deckOpen) closeDeck();
   N.carry = { ox: N.x - e.clientX, oy: N.y - e.clientY, sx: e.clientX, sy: e.clientY, hist: [{ t: now, x: e.clientX, y: e.clientY }],
@@ -1214,7 +1270,7 @@ function keepEvent(ev) {
   }
 }
 host.on('event', handleEvent);
-host.on('xp_spend', p => spendXp(p && p.cost, p && p.title ? `„${p.title}“ kommt gleich.` : ''));
+host.on('xp_spend', p => spendXp(p && p.cost, p && p.what ? String(p.what) : p && p.title ? `„${p.title}“ kommt gleich.` : ''));   // 1.14: auch Skin-Käufe
 host.on('platforms', p => { platforms = Array.isArray(p) ? p : []; });
 host.on('settings', s => { lastSpriteKey = ''; fxWasEmpty = false; fxBox = null;
   const oldSize = settings.size;

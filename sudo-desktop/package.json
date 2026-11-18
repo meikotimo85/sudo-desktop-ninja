@@ -1,7 +1,7 @@
 {
   "name": "sudo-desktop-ninja",
   "productName": "Sudo",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "Sudo – der Desktop-Ninja für IT-Leute",
   "main": "main.js",
   "author": "MeikoSoft",
@@ -14,7 +14,9 @@
     "dist:portable": "electron-builder --win portable --x64 --publish never",
     "dist:setup": "electron-builder --win nsis --x64 --publish never",
     "dist:msi": "electron-builder --win msi --x64 --publish never",
-    "dist:all": "electron-builder --win nsis msi portable --x64 --publish never"
+    "dist:all": "electron-builder --win nsis msi portable --x64 --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --x64 --publish never",
+    "dist:appimage": "electron-builder --linux AppImage --x64 --publish never"
   },
   "dependencies": {
     "@fontsource/dotgothic16": "^5.3.1",
@@ -51,6 +53,8 @@
       "preload-verlauf.js",
       "preload-wissen.js",
       "plugins.js",
+      "preload-skinstore.js",
+      "skinstore.js",
       "preload-selfhelp.js",
       "preload-hinweise.js",
       "preload-music.js",
@@ -74,6 +78,7 @@
       "work.js",
       "preload-work.js",
       "win32.js",
+      "x11.js",
       "renderer/**/*",
       "assets/**/*",
       "node_modules/**/*",
@@ -123,6 +128,43 @@
         "provider": "generic",
         "url": "https://updates.example.com/sudo/"
       }
-    ]
-  }
+    ],
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "executableName": "sudo-desktop",
+      "synopsis": "Desktop-Ninja für die IT",
+      "description": "Pixel-Ninja als Desktop-Begleiter mit Sudo-Zentrale für Meldungen, Störungen, Plugins und Selbsthilfe.",
+      "maintainer": "MeikoSoft <info@meikosoft.net>",
+      "vendor": "MeikoSoft",
+      "desktop": {
+        "entry": {
+          "Name": "Sudo",
+          "StartupWMClass": "sudo-desktop",
+          "Comment": "Sudo – der Desktop-Ninja für die IT"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "Sudo-${version}.AppImage"
+    },
+    "deb": {
+      "artifactName": "sudo-desktop_${version}_amd64.deb",
+      "depends": [
+        "libnotify4",
+        "libxtst6",
+        "libnss3",
+        "libx11-6",
+        "libxss1",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    }
+  },
+  "desktopName": "sudo-desktop.desktop"
 }

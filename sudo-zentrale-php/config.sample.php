@@ -1,5 +1,6 @@
 <?php
 // config.php – Einstellungen der Sudo-Zentrale (PHP). Diese Datei als config.php kopieren und ausfüllen.
+// Sicherer (ab 1.14): als sudo-zentrale-config.php EINE EBENE ÜBER dem Web-Ordner ablegen – dann kann der Webserver sie nie ausliefern.
 return [
     // Öffentliche Adresse – genau so, wie Sudos und Browser sie aufrufen (ohne Schrägstrich am Ende)
     'public_url' => 'https://sudo.example.com',
@@ -14,9 +15,15 @@ return [
     'admin_users' => ['meiko@example.de'],   // UPNs/E-Mails, die in die Verwaltung dürfen
     'admin_group' => '',                      // oder Objekt-ID einer Entra-Gruppe (Gruppen-Claim aktivieren)
 
-    // Notfall-Zugang: Hash über /setup erzeugen (beginnt mit $2y$ …). Neben Entra nur aktiv, wenn local_login = true.
+    // Notfall-Zugang: Hash über /setup erzeugen (beginnt mit $2y$ …) – ein Klartext-Passwort wird ab 1.14 abgelehnt.
+    // Neben Entra nur aktiv, wenn local_login = true.
     'admin_password' => '',
     'local_login' => false,
+    // Zweiter Faktor für den Notfall-Zugang (empfohlen): Schlüssel in der Verwaltung unter „Sicherheit & Quiz“ erzeugen
+    // und hier eintragen. Dann braucht die Anmeldung zusätzlich den 6-stelligen Code aus einer Authenticator-App.
+    'admin_totp' => '',
+    // Notfall-Zugang nur von diesen Adressen (optional), z. B. ['203.0.113.10', '198.51.100.0/24']
+    'local_login_ips' => [],
 
     // Frag Sudo über die Zentrale: Claude-API-Schlüssel (console.anthropic.com)
     'anthropic_key' => '',

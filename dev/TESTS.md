@@ -64,6 +64,21 @@ Erwartet: 32 Zeilen „OK“, am Ende „Alles gut“.
 
 Im Client: `SUDO_PLUGIN_ADD=<html-datei>` fügt ein eigenes Plugin hinzu, `SUDO_OPEN_PLUGIN=<id>` (oder `zentrale/<id>`) öffnet es, `SUDO_PLUGIN_JS` führt JS darin aus (Ergebnis als `[plugin-js]`). `SUDO_ENROLL="http://127.0.0.1:8091|TEST-PHP-1234"` meldet den Test-Sudo an der Zentrale an – so lässt sich die Verteilung von der Zentrale bis ins Fenster prüfen. Endung `.sudoplugin` (ab 1.13): `npx electron . --user-data-dir=<Ordner> "<pfad>\x.sudoplugin"` entspricht einem Doppelklick, `SUDO_DIALOG_ANSWER=0` (öffnen), `1` (nur hinzufügen) oder `2` (abbrechen) beantwortet die Rückfrage. Läuft schon ein Test-Sudo mit demselben Datenordner, kommt die Datei dort an. `SUDO_ASSOC_TEST=1` trägt die Endung testweise als `.sudoplugintest` unter `HKCU\Software\Classes` ein (danach `.sudoplugintest` und `Sudo.PluginTest` wieder löschen). `SUDO_TRAY_DUMP=1` gibt das Tray-Menü als `[tray]` aus (prüft, ob „Plugins“ mit allen Einträgen erscheint). Abschottung prüfen: ein Plugin mit `fetch('http://127.0.0.1:9/')` muss mit „Failed to fetch“ scheitern, im `events.log` steht „Plugin: Zugriff gesperrt“.
 
+## End-to-End-Test Notfall-Zugang (ab 1.14)
+Frische Datenbank nötig. Der Server muss mit dem öffentlichen Beispielschlüssel `JBSWY3DPEHPK3PXP` starten: PHP mit `$env:SUDO_TEST_TOTP`, Node mit `$env:ADMIN_TOTP`.
+```powershell
+$env:SUDO_TEST_TOTP='JBSWY3DPEHPK3PXP'; cd sudo-zentrale-php; php -S 127.0.0.1:8091 index.php   # dann: python dev\test-auth.py
+```
+Erwartet: alle Zeilen „OK“ (PHP prüft zusätzlich, dass `config.php.bak`, `/app` und `/data` gesperrt sind), am Ende „Alles gut“.
+
+## End-to-End-Test Skins (ab 1.14)
+Frische Datenbank nötig, kein Nachbau.
+```powershell
+python dev\test-skins.py                           # gegen PHP (8091)
+$env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-skins.py    # gegen Node
+```
+Erwartet: 24 Zeilen „OK“, am Ende „Alles gut“. Im Client: `SUDO_OPEN_STORE=1500` öffnet den Skin-Store, `SUDO_TEST_XP=350` gibt Startguthaben, `SUDO_STORE_JS` führt JS im Store aus (`[store-js]`).
+
 ## Client (Sudo Desktop)
 ```powershell
 cd sudo-desktop; npm install; npm start

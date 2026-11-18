@@ -1,4 +1,4 @@
-# Sudo-Zentrale 1.13.0 – Node.js-Version (VPS mit Docker)
+# Sudo-Zentrale 1.14.0 – Node.js-Version (VPS mit Docker)
 
 > Kein VPS? Die **PHP-Version** (`sudo-zentrale-php`) läuft auf normalem Webspace und hat dieselbe Verwaltung.
 
@@ -116,6 +116,10 @@ Einrichtung:
 **Diagnose der Clients (ab 1.9):** Sudo 1.9 meldet alle 10 Minuten bei Änderungen CPU, Arbeitsspeicher, Selbst-Neustarts und Fehler der letzten 24 Stunden. Die Werte stehen unter „Geräte“ in der Spalte Version, der letzte Fehlertext erscheint beim Darüberfahren.
 
 **Regeln (ab 1.7):** Unter **Regeln** ordnet die Zentrale Meldungen der Schnittstelle selbst ein. So wird z. B. aus dem Ticket „Datensicherung Failed Muster GmbH“ ein Alarm „Backup fehlgeschlagen – Muster GmbH“ mit Klick zum Ticket. Drei Regeln sind dabei (Backup, Server nicht erreichbar, Zertifikat). Mit dem Testfeld prüfst du jeden Titel, ohne etwas zu senden. Einzelheiten stehen in API-ANLEITUNG.md, Abschnitt 3a.
+
+**Notfall-Zugang absichern (ab 1.14):** Empfohlen ist ein **zweiter Faktor**: Unter **Sicherheit & Quiz → Notfall-Zugang** einen Schlüssel erzeugen, in einer Authenticator-App eintragen, mit einem Code prüfen und in der `.env` als `ADMIN_TOTP` hinterlegen. Optional erlaubt `LOCAL_LOGIN_IPS` den Notfall-Zugang nur von bestimmten Adressen. Immer aktiv: höchstens 5 Versuche je Adresse in 15 Minuten und 30 insgesamt pro Stunde, jeder Code nur einmal, Notfall-Sitzungen enden nach 2 Stunden. Das Passwort gehört als Hash in die `.env` (`npm run passwort`). Am sichersten ist es, den Notfall-Zugang ganz auszuschalten (`LOCAL_LOGIN=false`), solange Entra ID funktioniert.
+
+**Skins (ab 1.14):** Unter **Skins** lädst du eigene Outfits für den Skin-Store der Sudos hoch – eine `.sudoskin`-Datei oder eine `sudo-sheet.png` im Raster der Standardgrafik (höchstens 1 MB). Je Skin legst du einen Preis in XP fest (0 = kostenlos) und weist ihn allen, einer Gruppe oder einer Person zu. Mit „alle Skins kostenlos“ gelten für eure und die mitgelieferten Skins keine Preise. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
 
 **Plugins (ab 1.12):** Unter **Plugins** lädst du kleine Werkzeuge als einzelne `.sudoplugin`- oder HTML-Datei hoch (höchstens 2 MB) und weist sie allen, einer Gruppe oder einer Person zu. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Gleiche Kennung ersetzt die alte Fassung, „pausiert“ blendet ein Plugin aus, „Entfernen“ löscht es auch auf den PCs. Mit dem Schalter „Eigene Plugins der Mitarbeitenden“ legst du fest, ob jeder zusätzlich eigene hinzufügen darf. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
 

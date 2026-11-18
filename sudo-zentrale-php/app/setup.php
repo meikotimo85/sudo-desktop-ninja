@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 /** @var array $cfg @var bool $hasConfig @var string $base */
 $done = $hasConfig && (entra_on($cfg) || !empty($cfg['admin_password']));
+// 1.14: Klartext-Passwörter werden abgelehnt – den Hash-Generator deshalb auch nach der Einrichtung anbieten, solange keiner eingetragen ist
+$needHash = !password_hashed((string) ($cfg['admin_password'] ?? ''));
 $hash = '';
-if (!$done && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['pw'])) {
+if ((!$done || $needHash) && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['pw'])) {
     $pw = (string) $_POST['pw'];
     $hash = strlen($pw) >= 12 ? password_hash($pw, PASSWORD_DEFAULT) : 'zu kurz – mindestens 12 Zeichen';
 }
@@ -32,15 +34,18 @@ header("Content-Security-Policy: default-src 'self'; style-src 'self'; img-src '
 <img src="icon.png" alt="" class="logo"><h1><span>sudo</span> einrichtung</h1>
 <?php if ($done): ?>
   <p>Die Einrichtung ist abgeschlossen. <a href="admin/">Zur Verwaltung</a></p>
-<?php else: ?>
+<?php endif; ?>
+<?php if (!$done): ?>
   <section class="card left">
     <h3>Systemprüfung</h3>
     <table class="tbl"><tbody>
     <?php foreach ($checks as [$name, $ok, $info]): ?>
-      <tr><td><?= $ok ? '✅' : '❌' ?> <?= $h($name) ?></td><td class="muted"><?= $h($info) ?></td></tr>
+      <tr><td><?= $ok ? '[OK]' : '[FEHLT]' ?> <?= $h($name) ?></td><td class="muted"><?= $h($info) ?></td></tr>
     <?php endforeach; ?>
     </tbody></table>
   </section>
+<?php endif; ?>
+<?php if (!$done || $needHash): ?>
   <section class="card left">
     <h3>Notfall-Passwort als Hash</h3>
     <form method="post" class="row">
@@ -51,7 +56,7 @@ header("Content-Security-Policy: default-src 'self'; style-src 'self'; img-src '
       <p class="muted">In die config.php bei <code>'admin_password'</code> eintragen:</p>
       <pre class="code"><?= $h($hash) ?></pre>
     <?php endif; ?>
-    <p class="muted">Diese Seite ist nur erreichbar, solange noch keine Admin-Anmeldung eingerichtet ist.</p>
+    <p class="muted">Ein Klartext-Passwort in der config.php wird ab 1.14 abgelehnt. Für den zweiten Faktor (<code>'admin_totp'</code>) erzeugst du nach der Anmeldung einen Schlüssel unter „Sicherheit &amp; Quiz“.</p>
   </section>
 <?php endif; ?>
 </main></body></html>

@@ -10,9 +10,11 @@ const ZENTRALE_DEFAULTS = { url: '', deviceId: '', name: '', tokenEnc: '', token
 const normUrl = u => { try { const x = new URL(String(u).trim()); if (!/^https?:$/.test(x.protocol)) return ''; return x.origin + x.pathname.replace(/\/+$/, ''); } catch { return ''; } };
 
 // Vorgaben für zentrale Verteilung: Datei C:\ProgramData\Sudo\zentrale.json oder Richtlinie HKLM\SOFTWARE\Policies\MeikoSoft\Sudo
+// Linux (1.12): /etc/sudo-desktop/zentrale.json (gleicher Aufbau, z. B. über NinjaOne, Ansible oder das .deb verteilt)
 function readPreset(log) {
   return new Promise(resolve => {
-    const file = path.join(process.env.ProgramData || 'C:\\ProgramData', 'Sudo', 'zentrale.json');
+    const file = process.platform === 'linux' ? '/etc/sudo-desktop/zentrale.json'
+      : path.join(process.env.ProgramData || 'C:\\ProgramData', 'Sudo', 'zentrale.json');
     // BOM entfernen: Windows PowerShell 5.1 schreibt mit „Set-Content -Encoding UTF8“ eine voran, daran scheitert JSON.parse
     try {
       const j = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
@@ -47,7 +49,7 @@ function readUpn() {
   })().then(u => (upnCache = u)).catch(() => (upnCache = ''));
 }
 
-function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log, version, lang, onEvent, onConfig, onChange, test, visitPrefs, healthSummary, onQuiz, onOps, onMedia, onKb, onDex, onPlugins }) {
+function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log, version, lang, onEvent, onConfig, onChange, test, visitPrefs, healthSummary, onQuiz, onOps, onMedia, onKb, onDex, onPlugins, onSkins }) {
   const prefs = () => (visitPrefs ? visitPrefs() : { allow: true, name: '' });
   const cfg = () => ({ ...ZENTRALE_DEFAULTS, ...(getSettings().zentrale || {}) });
   let ws = null, online = false, retry = 0, timer = null, lastError = '', serverAi = null, device = null, stopped = false, lastPing = 0;
@@ -58,6 +60,7 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
   let serverKb = null;                                             // 1.9: Anleitungen aus SharePoint verfügbar
   let serverDex = null;                                            // 1.10: Stimmungsbarometer, Start-Checkliste, Tipps
   let serverPlugins = null;                                        // 1.12: Plugins der IT + ob eigene erlaubt sind
+  let serverSkins = null;                                          // 1.14: Skins der IT (Store) + „alle kostenlos“
   let serverMedia = null;                                          // 1.8: YouTube an/aus, Musikwünsche freigeschaltet + Kosten                              // 1.6: Hilfe-Kontakt, Störungen, Neustart-Kampagnen   // 1.5: Gerätezustand nur auf Anforderung, Quiz-Vorgaben der Zentrale
   const healthNow = () => { if (!healthWanted || !healthSummary) return null; const h = healthSummary(); return h && JSON.stringify(h) !== healthSent ? h : null; };
   const takeConfig = j => {
@@ -65,6 +68,7 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
     if (j.quiz && JSON.stringify(j.quiz) !== JSON.stringify(serverQuiz)) { serverQuiz = j.quiz; if (onQuiz) onQuiz(serverQuiz); }
     { const k = j.kb || { enabled: false }; if (JSON.stringify(k) !== JSON.stringify(serverKb)) { serverKb = k; if (onKb) { try { onKb(serverKb); } catch { /* egal */ } } } }
     // 1.12: ältere Zentralen schicken kein „plugins“ – dann bleibt alles, wie es ist
+    if (j.skins && JSON.stringify(j.skins) !== JSON.stringify(serverSkins)) { serverSkins = j.skins; if (onSkins) { try { onSkins(serverSkins); } catch (e) { log('Zentrale-Skins: ' + e.message); } } }
     if (j.plugins && JSON.stringify(j.plugins) !== JSON.stringify(serverPlugins)) { serverPlugins = j.plugins; if (onPlugins) { try { onPlugins(serverPlugins); } catch (e) { log('Zentrale-Plugins: ' + e.message); } } }
     if (j.dex && JSON.stringify(j.dex) !== JSON.stringify(serverDex)) { serverDex = j.dex; if (onDex) { try { onDex(serverDex); } catch (e) { log('Zentrale-Erlebnis: ' + e.message); } } }
     if (j.media && JSON.stringify(j.media) !== JSON.stringify(serverMedia)) { serverMedia = j.media; if (onMedia) { try { onMedia(serverMedia); } catch { /* egal */ } } }
@@ -275,6 +279,8 @@ function createZentrale({ getSettings, setSettings, encrypt, decrypt, fetch, log
     dexConfig: () => serverDex,
     // 1.12: Plugin der Zentrale laden (HTML + Prüfsumme)
     pluginGet: id => call('GET', '/api/plugins/' + encodeURIComponent(String(id))),
+    // 1.14: Skin der Zentrale laden (Grafik als Base64, Raster, Prüfsumme)
+    skinGet: id => call('GET', '/api/skins/' + encodeURIComponent(String(id))),
     pulseAnswer: a => call('POST', '/api/pulse', a),
     pulseIncident: (id, ok) => call('POST', '/api/pulse/incident', { id, ok: !!ok }),
     onboardMark: (id, done, auto) => call('POST', '/api/onboard', { id, done: !!done, auto: !!auto }),

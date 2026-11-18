@@ -45,5 +45,6 @@ Beide Links erscheinen im Unternehmensportal bei der App.
 | `js/sudo.js` | der laufende Sudo auf der Taskleiste, Uhr, Angaben einsetzen |
 | `img/` | Sudo-Grafiken, direkt aus dem Original-Sprite-Sheet erzeugt |
 | `fonts/` | Pixelify Sans (Überschriften), Atkinson Hyperlegible (Text) – beide unter SIL Open Font License |
+| `js/store.js`, `skins/` | Galerie „Skin-Store“ (ab 1.14): erzeugt mit `node sudo-desktop/tools/build-website-skins.js` aus den mitgelieferten Skins. „Im Sudo ansehen“ öffnet über `sudo-ninja://store/<id>` den Store im installierten Sudo |
 
 Wer in Windows „Animationen anzeigen“ ausgeschaltet hat, sieht Sudo still stehen; anklicken geht trotzdem.

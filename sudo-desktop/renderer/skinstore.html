@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<title>Sudo – Skin-Store</title>
+<style>
+  @font-face { font-family: "Pixelify Sans"; font-weight: 700;
+    src: url("../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#12161f; --card:#181d28; --line:#2b3344; --fg:#e3e8f0; --muted:#8a94a6; --teal:#25d3d0; --gold:#f4d03f; --violet:#b493ff; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding: 18px 22px 22px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font: 700 26px "Pixelify Sans", monospace; }
+  h1 span { color: var(--teal); }
+  .lead { margin: 4px 0 0; color: var(--muted); max-width: 60ch; font-size: 13px; }
+  .xp { font: 700 15px Consolas, monospace; color: var(--gold); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; white-space: nowrap; }
+  .note { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; background: rgba(37,211,208,.08); border: 1px solid rgba(37,211,208,.3); font-size: 13px; }
+  h2 { margin: 20px 0 8px; font: 600 11.5px "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 10px 12px; display: grid; justify-items: center; gap: 4px; text-align: center; position: relative; }
+  .card.wearing { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+  .card.focus { animation: hl 1.6s ease-out 2; }
+  @keyframes hl { 0% { box-shadow: 0 0 0 3px var(--gold); } 100% { box-shadow: 0 0 0 0 transparent; } }
+  .card canvas { width: 96px; height: 104px; image-rendering: pixelated; background: linear-gradient(180deg, #0c1222, #1b2848); border-radius: 6px; }
+  .card b { font-size: 14px; font-weight: 600; }
+  .card small { font-size: 11.5px; color: var(--muted); }
+  .tag { position: absolute; top: 8px; left: 8px; font: 700 10px "Segoe UI", sans-serif; padding: 1px 6px; border-radius: 99px; background: #232b3a; color: var(--muted); }
+  .tag.it { background: rgba(180,147,255,.16); color: var(--violet); }
+  .price { font: 700 13px Consolas, monospace; color: var(--gold); }
+  .price.free { color: #3ccf7a; }
+  button { font: 600 13px "Segoe UI", sans-serif; border-radius: 6px; border: 1px solid var(--line); background: #222938; color: var(--fg); padding: 6px 12px; cursor: pointer; width: 100%; margin-top: 4px; }
+  button:hover:not(:disabled) { border-color: #3d4a5f; }
+  button.buy { background: var(--gold); border-color: var(--gold); color: #1a1500; }
+  button.sure { background: #e5484d; border-color: #e5484d; color: #fff; }
+  button.wear { background: var(--teal); border-color: var(--teal); color: #062424; }
+  button:disabled { opacity: .55; cursor: default; }
+  footer { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  footer button { width: auto; margin: 0; }
+  #msg { font-size: 13px; color: var(--teal); }
+  #msg.bad { color: #ff6b70; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><span>sudo</span> skin-store</h1>
+    <p class="lead">Neue Outfits für Sudo. Bezahlt wird mit XP, die Sudo durch Bugs, Pausen und Quiz sammelt. Kaufen zieht die XP ab – dein Gürtel kann dabei sinken, Garderobe und Erfolge bleiben.</p>
+  </div>
+  <div class="xp" id="xp">0 XP</div>
+</header>
+<p class="note" id="free" hidden>Deine IT hat alle Skins freigeschaltet – einfach anziehen.</p>
+<main id="main"></main>
+<footer>
+  <button type="button" id="import">Skin-Datei hinzufügen …</button>
+  <button type="button" id="folder">Eigene Skins (Ordner) …</button>
+  <span id="msg" role="status"></span>
+</footer>
+<script src="i18n.js"></script>
+<script src="lang/en.js"></script>
+<script src="lang/ja.js"></script>
+<script src="sheet.js"></script>
+<script src="skinstore-window.js"></script>
+</body>
+</html>

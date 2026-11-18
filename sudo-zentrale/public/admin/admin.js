@@ -69,16 +69,57 @@
   };
   const summary = ev => Object.entries(ev).filter(([k]) => k !== 'type' && k !== 'dur').map(([, v]) => v).join(' · ') || '–';
 
+  /* ---------- Notfall-Zugang (1.14): Stand und Einrichtung des zweiten Faktors ---------- */
+  const accessWeak = () => { const s = (me && me.security) || {}; return !!s.local && (!s.totp || !s.hashed); };
+  function accessCard() {
+    const s = (me && me.security) || {};
+    const node = me && me.transport === 'ws';
+    const line = (ok, text) => el('div', { class: 'row' }, el('span', { class: 'pill ' + (ok ? 'ok' : 'warn'), text: ok ? 'erledigt' : 'offen' }), el('span', { text }));
+    if (!s.local) return card('Notfall-Zugang', el('p', { class: 'muted', text: 'Ausgeschaltet – Anmeldung nur über Microsoft Entra ID. Das ist die sicherste Einstellung.' }));
+    // Schlüssel entsteht im Browser und wird nur zum Prüfen einmal an die Zentrale geschickt, nicht gespeichert
+    let secret = '';
+    const secretEl = el('code', { class: 'big' }), uriEl = el('code');
+    const code = el('input', { type: 'text', inputmode: 'numeric', maxlength: 6, placeholder: '6 Ziffern', 'aria-label': 'Code aus der App' });
+    const res = el('span');
+    const where = el('pre', { class: 'code' });
+    const box = el('div', { class: 'qform', hidden: true },
+      el('p', { class: 'muted', text: 'In der Authenticator-App (Microsoft Authenticator, Google Authenticator, 1Password …) „Konto hinzufügen“ → „Schlüssel manuell eingeben“ und diesen Schlüssel eintragen:' }),
+      secretEl, el('p', { class: 'muted', text: 'Oder als Link (für Passwort-Manager):' }), uriEl,
+      el('div', { class: 'row' }, code, action('Code prüfen', async () => {
+        const r = await api('POST', '/admin/api/totp-check', { secret, code: code.value });
+        res.className = 'pill ' + (r.ok ? 'ok' : 'bad'); res.textContent = r.ok ? 'passt' : 'passt nicht – Uhrzeit des Handys prüfen';
+      }), res),
+      el('p', { class: 'muted', text: node ? 'Passt der Code, in die .env eintragen und die Zentrale neu starten:' : 'Passt der Code, in die config.php eintragen:' }), where,
+      el('p', { class: 'muted', text: 'Danach fragt die Anmeldeseite zusätzlich nach dem 6-stelligen Code. Den Schlüssel sicher aufbewahren (z. B. im Passwort-Tresor) – die Zentrale zeigt ihn nicht noch einmal.' }));
+    const gen = action(s.totp ? 'Neuen Schlüssel erzeugen' : 'Zweiten Faktor einrichten', async () => {
+      const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      let bits = ''; for (const x of crypto.getRandomValues(new Uint8Array(20))) bits += x.toString(2).padStart(8, '0');
+      secret = ''; for (let i = 0; i + 5 <= bits.length; i += 5) secret += A[parseInt(bits.slice(i, i + 5), 2)];
+      secretEl.textContent = secret.replace(/(.{4})/g, '$1 ').trim();
+      uriEl.textContent = `otpauth://totp/Sudo-Zentrale:Notfall?secret=${secret}&issuer=Sudo-Zentrale`;
+      where.textContent = node ? `ADMIN_TOTP=${secret}` : `'admin_totp' => '${secret}',`;
+      res.textContent = ''; code.value = ''; box.hidden = false;
+    }, 'primary');
+    return card('Notfall-Zugang',
+      line(s.hashed, node ? 'Passwort als Hash (npm run passwort)' : 'Passwort als Hash eingetragen (Klartext wird abgelehnt)'),
+      line(s.totp, 'Zweiter Faktor: Code aus einer Authenticator-App'),
+      line(s.ips, 'Nur von freigegebenen Adressen (optional, ' + (node ? 'LOCAL_LOGIN_IPS' : "'local_login_ips'") + ')'),
+      el('p', { class: 'muted', text: 'Immer aktiv: höchstens 5 Versuche je Adresse in 15 Minuten und 30 insgesamt pro Stunde, Fehlversuche im Protokoll, Notfall-Sitzungen enden nach 2 Stunden. Am sichersten ist es, den Notfall-Zugang ganz auszuschalten, solange Entra funktioniert.' }),
+      el('div', { class: 'row' }, gen), box);
+  }
+
   /* ---------- Anmeldung ---------- */
   async function renderLogin() {
     const info = await fetch(BASE + '/auth/info').then(r => r.json()).catch(() => ({}));
     const q = new URLSearchParams(location.search);
     const msg = el('div', { class: 'msg bad', text: q.get('fehler') || '' });
     const pw = el('input', { type: 'password', autocomplete: 'current-password', 'aria-label': 'Admin-Passwort', placeholder: 'Admin-Passwort' });
+    // 1.14: zweiter Faktor – 6-stelliger Code aus der Authenticator-App
+    const code = info.totp ? el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, pattern: '[0-9]*', 'aria-label': 'Code aus der Authenticator-App', placeholder: 'Code (6 Ziffern)', class: 'code' }) : null;
     const form = el('form', { on: { submit: async e => {
       e.preventDefault();
-      try { await api('POST', '/auth/password', { password: pw.value }); location.href = BASE + '/admin/'; } catch (x) { msg.textContent = x.message; }
-    } } }, el('div', { class: 'row' }, pw, el('button', { class: 'btn', type: 'submit', text: 'Anmelden' })));
+      try { await api('POST', '/auth/password', { password: pw.value, ...(code ? { code: code.value } : {}) }); location.href = BASE + '/admin/'; } catch (x) { msg.textContent = x.message; if (code) code.value = ''; }
+    } } }, el('div', { class: 'row' }, pw, code, el('button', { class: 'btn', type: 'submit', text: 'Anmelden' })));
     app.className = 'login';
     app.replaceChildren(el('div', { class: 'center' },
       el('img', { src: BASE + '/icon.png', alt: '', class: 'logo' }), el('h1', {}, el('span', { text: 'sudo' }), ' zentrale'),
@@ -93,7 +134,7 @@
   }
 
   /* ---------- Rahmen ---------- */
-  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['plugins', 'Plugins'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
+  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['plugins', 'Plugins'], ['skins', 'Skins'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
   function shell(content) {
     const nav = el('nav', { class: 'side', 'aria-label': 'Bereiche' },
       el('p', { class: 'brand' }, el('img', { src: BASE + '/icon.png', alt: '' }), el('span', {}, el('span', { text: 'sudo' }), ' zentrale')),
@@ -114,7 +155,8 @@
       const d = await api('GET', '/admin/api/dashboard');
       const pct = d.aiMonth.budgetUsd ? Math.min(100, d.aiMonth.usd / d.aiMonth.budgetUsd * 100) : 0;
       return el('div', {},
-        el('h2', { text: 'Übersicht' }), el('p', { class: 'sub', text: me.transport === 'poll' ? `Erreichbar unter ${me.publicUrl}. Die Sudos fragen alle ${me.pollSec} Sekunden nach neuen Meldungen (Webspace-Version).` : `Erreichbar unter ${me.publicUrl}. Sudos verbinden sich per WebSocket und bekommen Meldungen sofort.` }),
+        el('h2', { text: 'Übersicht' }),
+        accessWeak() ? el('p', { class: 'msg bad' }, 'Der Notfall-Zugang ist aktiv, aber nicht vollständig abgesichert. ', el('a', { href: '#security', text: 'Jetzt absichern', on: { click: e => { e.preventDefault(); go('security'); } } })) : null, el('p', { class: 'sub', text: me.transport === 'poll' ? `Erreichbar unter ${me.publicUrl}. Die Sudos fragen alle ${me.pollSec} Sekunden nach neuen Meldungen (Webspace-Version).` : `Erreichbar unter ${me.publicUrl}. Sudos verbinden sich per WebSocket und bekommen Meldungen sofort.` }),
         el('div', { class: 'kpis' },
           el('div', { class: 'kpi' }, el('small', { text: 'Sudos online' }), el('b', { text: `${d.online}` }), el('i', { text: `von ${d.devices} angemeldeten` })),
           el('div', { class: 'kpi' }, el('small', { text: 'KI-Fragen heute' }), el('b', { text: String(d.aiToday.q) }), el('i', { text: usd(d.aiToday.usd) })),
@@ -746,6 +788,7 @@
       const healthy = devs.filter(d => d.health);
       return el('div', {},
         el('h2', { text: 'Sicherheit & Quiz' }),
+        accessCard(),
         el('p', { class: 'sub', text: 'Gerätezustand der PCs und kurze Sicherheitsfragen für alle. Die Quiz-Auswertung ist anonym: Gezählt wird nur, wie oft eine Frage richtig beantwortet wurde – nicht von wem.' }),
         card('Einstellungen',
           el('div', { class: 'grid3' }, el('label', { class: 'f' }, 'Gerätezustand an die Zentrale', hOn), el('label', { class: 'f' }, 'Security-Quiz', qOn), el('label', { class: 'f' }, 'Wie oft fragt Sudo?', qWeek)),
@@ -840,6 +883,89 @@
         el('div', { class: 'grid2' },
           card('Nach Gerät', u.perDevice.length ? el('table', { class: 'tbl' }, el('tbody', {}, u.perDevice.map(d => el('tr', {}, el('td', { text: d.name }), el('td', { class: 'num', text: `${d.q} Fragen` }), el('td', { class: 'num', text: usd(d.usd) }))))) : el('p', { class: 'empty', text: 'Noch keine Fragen.' })),
           card('Nach Modell', u.perModel.length ? el('table', { class: 'tbl' }, el('tbody', {}, u.perModel.map(d => el('tr', {}, el('td', { text: d.model === 'sonnet' ? 'Schlau (Sonnet)' : 'Schnell (Haiku)' }), el('td', { class: 'num', text: `${d.q} Fragen` }), el('td', { class: 'num', text: usd(d.usd) }))))) : el('p', { class: 'empty', text: 'Noch keine Fragen.' }))));
+    },
+
+    // 1.14: Skins für den Skin-Store – die Sudos kaufen sie mit XP
+    async skins() {
+      const d = await api('GET', '/admin/api/skins');
+      const devs = await api('GET', '/admin/api/devices');
+      const groups = [...new Set(devs.flatMap(x => String(x.groups || '').split(',').map(g => g.trim()).filter(Boolean)))].sort();
+      const people = [...new Set(devs.map(x => x.upn).filter(Boolean))].sort();
+      const tSel = cur => el('select', { 'aria-label': 'Für wen' }, el('option', { value: 'all', text: `Alle Sudos (${devs.length})`, selected: cur === 'all' }),
+        ...groups.map(g => el('option', { value: 'group:' + g, text: `Gruppe: ${g}`, selected: cur === 'group:' + g })),
+        ...people.map(u => el('option', { value: 'user:' + u, text: `Person: ${u}`, selected: cur === 'user:' + u })),
+        cur && cur !== 'all' && !groups.some(g => cur === 'group:' + g) && !people.some(u => cur === 'user:' + u) ? el('option', { value: cur, text: cur, selected: true }) : null);
+      const slug = s => String(s || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+      // Vorschau: Stand-Pose aus der Grafik (ohne eigene Raster-Beschreibung gilt das Standard-Raster 48 × 52)
+      const thumb = (png, sheet) => {
+        const c = el('canvas', { width: 48, height: 52, class: 'skinthumb' });
+        let cell = [48, 52], fr = { x: 0, y: 0 };
+        try { const m = sheet ? JSON.parse(sheet) : null; if (m) { cell = m.cell; fr = (m.frames.stand || [])[0] || fr; c.width = cell[0]; c.height = cell[1]; } } catch { /* Standard */ }
+        const img = new Image();
+        img.onload = () => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, fr.x, fr.y, cell[0], cell[1], 0, 0, cell[0], cell[1]); };
+        img.src = 'data:image/png;base64,' + png;
+        return c;
+      };
+      let up = null;            // { png, sheet }
+      const file = el('input', { type: 'file', accept: '.sudoskin,.png,image/png' });
+      const fName = el('input', { type: 'text', maxlength: 40, placeholder: 'z. B. Frost-Ninja' });
+      const fId = el('input', { type: 'text', maxlength: 40, placeholder: 'z. B. frost-ninja' });
+      const fPrice = el('input', { type: 'number', min: 0, max: 100000, step: 10, value: 200 });
+      const fTgt = tSel('all');
+      const prev = el('div', { class: 'row' });
+      file.addEventListener('change', async () => {
+        up = null; prev.replaceChildren();
+        const f = file.files[0]; if (!f) return;
+        try {
+          if (/\.sudoskin$/i.test(f.name)) {
+            const j = JSON.parse(await f.text());
+            if (!j || j.format !== 'sudoskin' || typeof j.png !== 'string') throw new Error('Das ist keine Skin-Datei.');
+            up = { png: j.png, sheet: j.sheet ? JSON.stringify(j.sheet) : null };
+            fName.value = String(j.name || f.name.replace(/\.sudoskin$/i, '')).slice(0, 40);
+            fId.value = slug(j.id || fName.value);
+          } else {
+            if (f.size > 1048576) throw new Error('Die Grafik ist größer als 1 MB.');
+            const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(f); });
+            up = { png: b64, sheet: null };
+            fName.value = f.name.replace(/\.png$/i, '').replace(/[-_]+/g, ' ').slice(0, 40);
+            fId.value = slug(fName.value);
+          }
+          prev.append(thumb(up.png, up.sheet), el('span', { class: 'muted', text: d.items.some(k => k.id === fId.value) ? 'ersetzt den vorhandenen Skin mit dieser Kennung' : 'Vorschau' }));
+        } catch (e) { toast(e.message, true); file.value = ''; }
+      });
+      const freeSel = el('select', {}, el('option', { value: 'false', text: 'XP-Preise gelten', selected: !d.free }), el('option', { value: 'true', text: 'alle Skins kostenlos', selected: d.free }));
+      return el('div', {},
+        el('h2', { text: 'Skins' }),
+        el('p', { class: 'sub', text: 'Neue Outfits für Sudo. Die Sudos zeigen sie im Skin-Store neben den mitgelieferten Skins; gekauft wird mit XP, die jeder Sudo selbst sammelt. Eine Grafik im Raster der Standardgrafik (sudo-sheet.png) oder eine .sudoskin-Datei hochladen – gleiche Kennung ersetzt den alten Stand.' }),
+        card(`Skins (${d.items.length})`, d.items.length ? el('div', { class: 'scroll' }, el('table', { class: 'tbl' },
+          el('thead', {}, el('tr', {}, ...['', 'Skin', 'Preis', 'Für wen', 'Geändert', ''].map(h => el('th', { text: h })))),
+          el('tbody', {}, d.items.map(k => {
+            const t = tSel(k.target); t.addEventListener('change', async () => { await api('PATCH', '/admin/api/skins/' + k.id, { target: t.value }); toast('Gespeichert.'); });
+            const pr = el('input', { type: 'number', min: 0, max: 100000, step: 10, value: k.price, class: 'num', 'aria-label': 'Preis in XP' });
+            pr.addEventListener('change', async () => { await api('PATCH', '/admin/api/skins/' + k.id, { price: Number(pr.value) || 0 }); toast('Preis gespeichert.'); });
+            return el('tr', { class: k.active ? '' : 'off' },
+              el('td', {}, thumb(k.png, k.sheet)),
+              el('td', {}, el('b', { text: k.name }), el('div', { class: 'muted', text: k.id })),
+              el('td', {}, el('div', { class: 'row' }, pr, el('span', { class: 'muted', text: 'XP' }))),
+              el('td', {}, t),
+              el('td', { class: 'muted', text: `${fmtDate(k.updated)}${k.author ? ' · ' + k.author : ''}` }),
+              el('td', {}, el('div', { class: 'row' }, action(k.active ? 'aktiv' : 'pausiert', async () => { await api('PATCH', '/admin/api/skins/' + k.id, { active: !k.active }); go('skins'); }, 'small'),
+                action('Entfernen', async () => { if (!confirm(`„${k.name}“ entfernen? Wer ihn gekauft hat, verliert ihn beim nächsten Abgleich.`)) return; await api('DELETE', '/admin/api/skins/' + k.id); go('skins'); }, 'small danger'))));
+          }))))
+          : el('p', { class: 'empty', text: 'Noch kein eigener Skin. Die mitgelieferten Skins zeigt jeder Sudo ohnehin.' }),
+          el('div', { class: 'qform' }, el('h4', { text: 'Skin hochladen' }),
+            el('label', { class: 'f' }, '.sudoskin-Datei oder sudo-sheet.png (höchstens 1 MB)', file), prev,
+            el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Name', fName), el('label', { class: 'f' }, 'Kennung', fId)),
+            el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Preis in XP (0 = kostenlos)', fPrice), el('label', { class: 'f' }, 'Für wen', fTgt)),
+            el('div', { class: 'row' }, action('Hochladen', async () => {
+              if (!up) throw new Error('Bitte zuerst eine Datei wählen.');
+              const r = await api('POST', '/admin/api/skins', { id: fId.value.trim(), name: fName.value.trim(), price: Number(fPrice.value) || 0, target: fTgt.value, png: up.png, sheet: up.sheet });
+              toast(r.updated ? `„${fName.value}“ ersetzt.` : `„${fName.value}“ hochgeladen.`); go('skins');
+            }, 'primary')))),
+        card('Preise',
+          el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Im Skin-Store', freeSel)),
+          el('p', { class: 'muted', text: '„Alle Skins kostenlos“ gilt für eure und die mitgelieferten Skins: Jeder kann sie ohne XP anziehen.' }),
+          el('div', { class: 'row', style: 'margin-top:12px' }, action('Speichern', async () => { await api('PUT', '/admin/api/settings', { skins_free: freeSel.value }); toast('Gespeichert.'); }, 'primary'))));
     },
 
     // 1.12: Plugins – kleine HTML-Werkzeuge, die sich die Sudos holen und abgeschottet öffnen

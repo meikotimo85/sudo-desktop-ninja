@@ -38,6 +38,21 @@
   #deck button.it span { font: 700 10px/1.1 var(--f-pixel); max-width: 66px; max-height: 2.2em; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; }
   #deck button.it i { position: absolute; top: 2px; right: 3px; font: 700 9px var(--f-pixel); color: #ff9f43; font-style: normal; }
   #deck .empty { padding: 4px 6px 6px; color: #8a94a6; font-size: 11px; max-width: 230px; }
+  /* Ninja-Rad (1.14): runde Schaltflächen im Kreis um Sudo, Name in der Mitte */
+  #deck.radial { padding: 0; background: none; border: 0; box-shadow: none; width: 0; height: 0; transition: none; }
+  #deck.radial.pop { opacity: 1; scale: 1; }
+  #deck.radial button.ri { all: unset; position: absolute; left: 0; top: 0; box-sizing: border-box; width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; background: #12161f; border: 3px solid #2b3344; box-shadow: 3px 3px 0 rgba(0,0,0,.5), inset 0 0 0 2px #0b0d12;
+    transform: translate(var(--x0), var(--y0)) scale(.3); opacity: 0; transition: transform .16s cubic-bezier(.2,.9,.3,1.3), opacity .12s, border-color .1s, background .1s; }
+  #deck.radial.open button.ri { transform: translate(var(--x), var(--y)) scale(1); opacity: 1; }
+  #deck.radial button.ri:hover, #deck.radial button.ri:focus-visible { border-color: #25d3d0; background: #1f2a3a; }
+  #deck.radial button.ri.plugin { border-color: #6f4fbf; }
+  #deck.radial button.ri.plugin:hover { border-color: #b493ff; background: #241d38; }
+  #deck.radial button.ri canvas { width: 27px; height: 27px; image-rendering: pixelated; }
+  #deck.radial button.ri i { position: absolute; top: -3px; right: -3px; font: 700 9px var(--f-pixel); font-style: normal; color: #0b0d12; background: #ff9f43; padding: 1px 3px; }
+  #deck.radial .lbl { position: absolute; left: 0; top: 0; white-space: nowrap; padding: 4px 8px; background: #12161f; border: 2px solid #25d3d0;
+    color: #e3e8f0; font: 700 11px/1.1 var(--f-pixel); box-shadow: 3px 3px 0 rgba(0,0,0,.5); pointer-events: none; }
+  #deck.radial .lbl.plugin { border-color: #b493ff; }
 
   #bubble {
     position: fixed; left: 0; top: 0; pointer-events: none; max-width: 260px; padding: 7px 10px 8px;

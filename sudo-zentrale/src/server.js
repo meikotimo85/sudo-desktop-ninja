@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const Fastify = require('fastify');
 const { openDb, sha256, randomToken, now, dayKey } = require('./db');
-const { createAuth } = require('./auth');
+const { createAuth, totpStep } = require('./auth');
 const sec = require('./security');
 const { createHub, cleanEvent, EVENT_TYPES, validTarget, cleanUpn } = require('./hub');
 const core = require('./anthropic');
@@ -23,6 +23,9 @@ const cfg = {
   adminGroup: env.ADMIN_GROUP_ID || '',
   adminPassword: env.ADMIN_PASSWORD || '',
   localLogin: /^(1|true|ja|yes)$/i.test(env.LOCAL_LOGIN || ''),
+  // 1.14: zweiter Faktor (Base32-Schlüssel aus der Verwaltung) und Freigabeliste für den Notfall-Zugang
+  adminTotp: env.ADMIN_TOTP || '',
+  localLoginIps: list(env.LOCAL_LOGIN_IPS),
   entra: { tenant: env.ENTRA_TENANT_ID || '', clientId: env.ENTRA_CLIENT_ID || '', clientSecret: env.ENTRA_CLIENT_SECRET || '' },
   anthropicKey: env.ANTHROPIC_API_KEY || '',
   anthropicUrl: env.ANTHROPIC_URL || core.API_URL,
@@ -69,7 +72,11 @@ hub.setDex((d, s) => dex.dexPublic(d, s));
 const { createPlugins, PluginError } = require('./plugins');
 const plugins = createPlugins(store, { matches: hub.matches, validTarget });
 hub.setPlugins((d, s) => plugins.publicFor(d, s));
-const opsTry = (reply, fn) => { try { return fn(); } catch (e) { if (e instanceof OpsError || e instanceof RuleError || e instanceof MediaError || e instanceof DexError || e instanceof PluginError) return err(reply, e.code, e.message); throw e; } };
+// 1.14: Skins für den Skin-Store
+const { createSkins, SkinError } = require('./skins');
+const skins = createSkins(store, { matches: hub.matches, validTarget });
+hub.setSkins((d, s) => skins.publicFor(d, s));
+const opsTry = (reply, fn) => { try { return fn(); } catch (e) { if (e instanceof OpsError || e instanceof RuleError || e instanceof MediaError || e instanceof DexError || e instanceof PluginError || e instanceof SkinError) return err(reply, e.code, e.message); throw e; } };
 
 app.register(require('@fastify/cookie'), { secret: cfg.cookieSecret });
 app.register(require('@fastify/rate-limit'), { global: true, max: 300, timeWindow: '1 minute' });
@@ -121,6 +128,12 @@ app.get('/api/device', async (req, reply) => {
 });
 
 app.register(async f => { f.get('/api/ws', { websocket: true }, (socket, req) => hub.handle(socket, req)); });
+
+/* ---------- Skins (1.14): Grafik eines Skins für dieses Gerät ---------- */
+app.get('/api/skins/:id', { config: { rateLimit: { max: 300, timeWindow: '1 hour', keyGenerator: req => bearer(req).slice(0, 16) || req.ip } } }, async (req, reply) => {
+  const d = deviceFrom(req); if (!d) return err(reply, 401, 'Gerät unbekannt oder gesperrt.');
+  return opsTry(reply, () => skins.getFor(d, req.params.id));
+});
 
 /* ---------- Plugins (1.12): HTML eines Plugins für dieses Gerät ---------- */
 app.get('/api/plugins/:id', { config: { rateLimit: { max: 300, timeWindow: '1 hour', keyGenerator: req => bearer(req).slice(0, 16) || req.ip } } }, async (req, reply) => {
@@ -387,7 +400,7 @@ app.get('/auth/login', async (req, reply) => (auth.entraOn ? auth.entraStart(req
 app.get('/auth/callback', async (req, reply) => auth.entraCallback(req, reply));
 app.post('/auth/password', async (req, reply) => auth.localLogin(req, reply));
 app.post('/auth/logout', async (req, reply) => { auth.logout(req, reply); return { ok: true }; });
-app.get('/auth/info', async () => ({ entra: auth.entraOn, password: auth.localOn, version: pkg.version }));
+app.get('/auth/info', async () => ({ entra: auth.entraOn, password: auth.localOn, totp: auth.totpOn, version: pkg.version }));
 
 app.register(async a => {
   // Jede Admin-Anfrage: gültige Sitzung; ändernde Anfragen zusätzlich mit CSRF-Token aus /admin/api/me
@@ -399,7 +412,9 @@ app.register(async a => {
   });
   const who = req => req.admin.user;
 
-  a.get('/me', async req => ({ user: req.admin.user, name: req.admin.name, via: req.admin.via, csrf: req.admin.csrf, version: pkg.version, publicUrl: cfg.publicUrl, aiKey: !!cfg.anthropicKey, transport: 'ws' }));
+  a.get('/me', async req => ({ user: req.admin.user, name: req.admin.name, via: req.admin.via, csrf: req.admin.csrf, version: pkg.version, publicUrl: cfg.publicUrl, aiKey: !!cfg.anthropicKey, transport: 'ws', security: auth.security() }));
+  // 1.14: zweiten Faktor vor dem Eintragen ausprobieren (der Schlüssel wird nicht gespeichert)
+  a.post('/totp-check', async req => ({ ok: totpStep(String((req.body || {}).secret || ''), String((req.body || {}).code || '')) >= 0 }));
 
   a.get('/dashboard', async () => {
     const devs = store.all('SELECT id, name, user, last_seen FROM devices WHERE revoked = 0');
@@ -551,7 +566,9 @@ app.register(async a => {
       tips_enabled: v => ['true', 'false'].includes(String(v)),
       tips_custom: v => typeof v === 'string' && v.length <= 20000 && tipsClean(v) !== null,
       // 1.12: Plugins
-      plugins_user: v => ['true', 'false'].includes(String(v))
+      plugins_user: v => ['true', 'false'].includes(String(v)),
+      // 1.14: Skin-Store
+      skins_free: v => ['true', 'false'].includes(String(v))
     };
     for (const [k, v] of Object.entries(b)) {
       if (!ok[k]) continue;
@@ -686,6 +703,12 @@ app.register(async a => {
   a.patch('/onboard/:id', async (req, reply) => opsTry(reply, () => { dex.itemPatch(req.params.id, req.body || {}); hub.refreshConfig(); return { ok: true }; }));
   a.delete('/onboard/:id', async (req, reply) => opsTry(reply, () => { dex.itemDelete(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
   a.post('/onboard/device/:id', async (req, reply) => opsTry(reply, () => { dex.showAgain(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
+
+  /* Skins (1.14) – Grafik bis 1 MB, als Base64 und JSON etwas mehr */
+  a.get('/skins', async () => skins.admin());
+  a.post('/skins', { bodyLimit: 2 * 1024 * 1024 }, async (req, reply) => opsTry(reply, () => { const r = skins.save(req.body || {}, who(req)); hub.refreshConfig(); return r; }));
+  a.patch('/skins/:id', async (req, reply) => opsTry(reply, () => { skins.patch(req.params.id, req.body || {}, who(req)); hub.refreshConfig(); return { ok: true }; }));
+  a.delete('/skins/:id', async (req, reply) => opsTry(reply, () => { skins.remove(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
 
   /* Plugins (1.12) – ein Plugin darf 2 MB haben, als JSON etwas mehr */
   a.get('/plugins', async () => plugins.admin());

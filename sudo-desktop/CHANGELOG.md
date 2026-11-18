@@ -1,3 +1,12 @@
+1.14.0 – Linux, Ninja-Rad, Skin-Store und sicherer Notfall-Zugang (Zentrale 1.14.0)
+  • Linux: Sudo läuft als AppImage (aktualisiert sich selbst) und als .deb. Fensterkanten über X11 (unter Wayland über XWayland), Autostart, Terminal als Root über pkexec, Neustart-Kampagnen über systemd. Vorgabe der Zentrale über /etc/sudo-desktop/zentrale.json (linux/zentrale-vorgabe.sh). Bauen über GitHub („Linux bauen“) oder unter Windows mit Entwicklermodus
+  • Ninja-Rad: Die mittlere Maustaste auf Sudo öffnet einen Kreis aus Symbolen – Programme, eigene Einträge und jetzt auch Plugins (violett). Der Name erscheint beim Darüberfahren. Die bisherige Leiste ist unter Einstellungen → Ninja-Leiste wählbar, Plugins lassen sich dort einzeln ausblenden
+  • Rechtsklick auf Sudo zeigt sein komplettes Menü – praktisch unter GNOME, wo es ohne Erweiterung kein Tray-Symbol gibt
+  • Skin-Store: 12 neue Skins (Ritter, Spartaner, Kenshi, Frost-Ninja, Fuchsgeist, IT-Wikinger, Netzwerk-Samurai, Cyber-Ninja, Lichtritter, Oni-Samurai, Schattenritter, Mecha-Samurai), bezahlt mit XP (100 bis 600). Kaufen mit Nachfrage, danach anziehen; der Gürtel kann dabei sinken. Im Tray unter „Skin“ und in den Einstellungen
+  • Skins von der IT: Die Zentrale verteilt eigene Skins mit XP-Preis an alle, Gruppen oder Personen und kann alle Skins kostenlos machen
+  • Endung .sudoskin mit eigenem Symbol: Doppelklick fragt „Skin … hinzufügen?“ – eigene Dateien gehören dir sofort. Die Infoseite zeigt eine Galerie; „Im Sudo ansehen“ öffnet den Store beim passenden Skin (Link sudo-ninja://)
+  • .sudoplugin und .sudoskin funktionieren jetzt auch unter Linux (Freedesktop: MIME-Typ, Symbol, versteckte .desktop-Datei)
+
 1.13.0 – Plugins per Doppelklick: Endung .sudoplugin (Zentrale 1.13.0)
   • Dateien mit der Endung .sudoplugin haben im Explorer ein eigenes Pixel-Symbol (Blatt mit violettem Puzzleteil). Ein Doppelklick öffnet Sudo und fragt, ob das Plugin hinzugefügt werden soll – „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“; läuft Sudo schon, kommt die Frage dort
   • Sudo trägt die Endung beim Start für den angemeldeten Benutzer ein (ohne Adminrechte, für Setup, MSI und portable EXE) und nur dann neu, wenn sich etwas geändert hat

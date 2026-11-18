@@ -1,0 +1,46 @@
+# Linux-Bau von Sudo (AppImage + .deb) auf einem GitHub-Rechner mit Ubuntu.
+# Unter Windows scheitert der AppImage-Bau ohne Entwicklermodus an symbolischen Links – hier nicht.
+# Start: GitHub → Actions → „Linux bauen“ → „Run workflow“. Ergebnis unten unter „Artifacts“.
+# Update-Adresse für das Selbst-Update der AppImage: Repository → Settings → Secrets and variables → Actions →
+# Reiter „Variables“ → SUDO_UPDATE_URL (z. B. https://updates.example.com/sudo/). Ohne Variable: Beispieladresse.
+name: Linux bauen
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sudo-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sudo-desktop/package-lock.json
+      - name: Abhängigkeiten
+        run: npm ci --no-audit --no-fund
+      - name: AppImage und .deb bauen
+        env:
+          SUDO_UPDATE_URL: ${{ vars.SUDO_UPDATE_URL }}
+        run: |
+          if [ -n "$SUDO_UPDATE_URL" ]; then
+            npx electron-builder --linux AppImage deb --x64 --publish never -c.publish.url="$SUDO_UPDATE_URL"
+          else
+            echo "Hinweis: Variable SUDO_UPDATE_URL fehlt – das Selbst-Update zeigt auf die Beispieladresse."
+            npx electron-builder --linux AppImage deb --x64 --publish never
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudo-linux
+          path: |
+            sudo-desktop/dist/*.AppImage
+            sudo-desktop/dist/*.deb
+            sudo-desktop/dist/latest-linux.yml
+          if-no-files-found: error

@@ -9,6 +9,8 @@ return [
   'admin_users' => [], 'admin_group' => '',
   'admin_password' => password_hash('test-passwort-16', PASSWORD_DEFAULT),
   'local_login' => true,
+  // 1.14: Für test-auth.py startet tests.sh den Server mit SUDO_TEST_TOTP (öffentlicher Beispielschlüssel, kein Geheimnis)
+  'admin_totp' => getenv('SUDO_TEST_TOTP') ?: '',
   'anthropic_key' => 'sk-ant-test',
   'anthropic_url' => 'http://127.0.0.1:4799/v1/messages',   // sudo-desktop/tools/mock-anthropic.js
   'poll_seconds' => 5,

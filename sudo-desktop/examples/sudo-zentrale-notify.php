@@ -6,7 +6,7 @@
  */
 declare(strict_types=1);
 
-const SUDO_ZENTRALE_URL = 'https://sudo.meikosoft.net';
+const SUDO_ZENTRALE_URL = 'https://sudo.example.com';
 const SUDO_ZENTRALE_KEY = 'szk_HIER-DEN-API-SCHLUESSEL-EINTRAGEN';
 
 /**

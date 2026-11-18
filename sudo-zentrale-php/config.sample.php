@@ -2,7 +2,7 @@
 // config.php – Einstellungen der Sudo-Zentrale (PHP). Diese Datei als config.php kopieren und ausfüllen.
 return [
     // Öffentliche Adresse – genau so, wie Sudos und Browser sie aufrufen (ohne Schrägstrich am Ende)
-    'public_url' => 'https://sudo.meikosoft.net',
+    'public_url' => 'https://sudo.example.com',
 
     // Datenbank: SQLite (nichts einzurichten, Datei liegt im geschützten Ordner data/) …
     'db' => ['dsn' => 'sqlite:' . __DIR__ . '/data/zentrale.sqlite', 'user' => null, 'pass' => null],

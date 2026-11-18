@@ -1,4 +1,4 @@
-# Sudo – Desktop-Ninja 1.11.0
+# Sudo – Desktop-Ninja 1.13.0
 
 Sudo lebt auf deinem Windows-Desktop: Er läuft auf der Taskleiste, springt auf die Oberkanten deiner echten Fenster, tippt mit, wenn du tippst, erinnert dich an Pausen und meldet sich, wenn in der IT etwas brennt.
 
@@ -23,7 +23,7 @@ Die EXE-Dateien sind nicht signiert. Windows SmartScreen warnt deshalb beim erst
 
 ### Automatische Updates (Setup-Version)
 
-1. In `package.json` unter `build.publish` die Adresse deines Update-Ordners eintragen (vorbelegt: `https://updates.meikosoft.net/sudo/`).
+1. Die Adresse deines Update-Ordners in die Datei `update-adresse.txt` neben `BAUEN.bat` schreiben, z. B. `https://updates.example.com/sudo/`. Die Datei ist von Git ausgenommen; `BAUEN.bat` übergibt die Adresse beim Bauen. Ohne Datei zeigt der Build auf die Beispieladresse aus `package.json` – das Selbst-Update funktioniert dann nicht.
 2. Nach jedem Build mit [2] diese drei Dateien per FTP in genau diesen Ordner laden: `latest.yml`, `Sudo-Setup-<Version>.exe`, `Sudo-Setup-<Version>.exe.blockmap`.
 3. Für eine neue Version die `version` in `package.json` erhöhen (z. B. 1.0.1), bauen, hochladen. Fertig.
 
@@ -114,7 +114,7 @@ Einstellungen → **KI: Frag Sudo**:
 - Gespeichert wird nur der Verbrauch (Anzahl, Token, Kosten), keine Fragen oder Antworten. Der Gesprächsverlauf bleibt bis „Neu“ bzw. zum Beenden im Speicher.
 - Die Fragen gehen an die Claude-API von Anthropic: bitte keine Passwörter, Zugangsdaten oder Kundendaten eingeben.
 
-## Sudo-Zentrale (sudo.meikosoft.net)
+## Sudo-Zentrale
 
 Die Zentrale ist ein eigener kleiner Server mit eigener Anleitung – in zwei Varianten mit gleicher Verwaltung:
 - **PHP-Version** (`sudo-zentrale-php`) für normalen Webspace ohne VPS. Die Sudos fragen alle 15 Sekunden nach neuen Meldungen.
@@ -193,6 +193,27 @@ Tray → „Meeting-Check: Ton & Bild …“ oder Selbsthilfe. Prüft Mikrofon (
 - **Kurze Frage:** Die IT stellt eine Frage (1–5 Sterne, optional Anmerkung). Sudo bietet sie höchstens dreimal an (werktags 9–17 Uhr, nie im Meeting), sie lässt sich überspringen. Die Zentrale speichert Sterne ohne Gerät.
 - **Läuft es wieder?** Nach dem Beenden einer Störung, bei der du „Ich bin auch betroffen“ geklickt hast. Diese Antwort geht mit Gerät an die IT – damit sie bei „Geht noch nicht“ helfen kann.
 - **Start-Checkliste:** In den ersten Tagen nach der Registrierung (Standard 30). Sudo prüft selbst: OneDrive angemeldet, Desktop/Dokumente in OneDrive, Teams eingerichtet, Signatur (klassisches Outlook), Drucker, Quiz, Gerätezustand. Einmal täglich erinnert Sudo an offene Punkte; alles erledigt = 25 XP. Tray → „Start-Checkliste (x/y) …“.
+
+## Plugins (ab 1.12)
+
+Plugins sind kleine Zusatzwerkzeuge als **eine einzelne HTML-Datei** – z. B. ein Namens-Generator für Entra-Gruppen, ein Subnetzrechner oder eine Checkliste eurer Firma. So muss nicht jede Spezialfunktion fest in Sudo stecken.
+
+- **Öffnen:** Tray-Menü → **Plugins** (Puzzle-Symbol, erscheint, sobald es mindestens ein Plugin gibt) oder Einstellungen → Reiter **Plugins**.
+- **Selbst hinzufügen:** Einstellungen → Plugins → **Datei wählen …**. Gleiche Kennung ersetzt die alte Fassung. Abgelegt unter `%APPDATA%\Sudo\plugins\eigene\`.
+- **Per Doppelklick (ab 1.13):** Eine Datei mit der Endung **`.sudoplugin`** (eigenes Puzzle-Symbol im Explorer) öffnet Sudo und fragt „Plugin … hinzufügen?“ – mit „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“. Die Endung trägt Sudo beim Start selbst für den angemeldeten Benutzer ein (`HKCU\Software\Classes`, ohne Adminrechte, gleich bei Setup, MSI und portabler EXE). Eine `.sudoplugin`-Datei ist eine normale Plugin-HTML-Datei mit anderer Endung – zum Verschicken einfach umbenennen.
+- **Von der IT:** In der Sudo-Zentrale unter **Plugins** hochladen und zuweisen (alle, Gruppe, Person). Die Sudos holen sie von selbst, prüfen die Prüfsumme und löschen sie wieder, wenn die IT sie entfernt. Die IT kann eigene Plugins der Mitarbeitenden verbieten.
+
+**Abgeschottet:** Ein Plugin läuft in einem eigenen Fenster ohne Node und ohne Brücke zu Sudo. Alle Netzwerkzugriffe (http, https, WebSocket, WebRTC) und fremde Dateien werden gesperrt und im Ereignisprotokoll vermerkt; jedes Plugin hat seinen eigenen Speicher (`localStorage`). Erlaubt sind nur: Text in die Zwischenablage schreiben, Rückfragen (`confirm`, `alert`) und Dateien über den Speichern-Dialog sichern. Pop-ups und Navigation weg von der Datei werden blockiert. Trotzdem gilt: nur Plugins aus vertrauenswürdiger Quelle hinzufügen.
+
+**Selbst bauen:** Alles (CSS, JavaScript, Bilder als `data:`) in eine HTML-Datei, höchstens 2 MB, ohne Abruf aus dem Internet. Zum Weitergeben in `.sudoplugin` umbenennen. Firmen- oder kundenspezifische Plugins gehören nicht in dieses Repo, sondern in ein eigenes, privates. `<title>` ist der Name, freiwillig dazu:
+
+```html
+<meta name="sudo-plugin-id" content="subnetz-rechner">
+<meta name="sudo-plugin-version" content="1.0">
+<meta name="sudo-plugin-size" content="560x520">
+```
+
+Ein vollständiges Beispiel liegt unter `examples/plugins/subnetz-rechner.html`.
 
 ## Musikwunsch
 

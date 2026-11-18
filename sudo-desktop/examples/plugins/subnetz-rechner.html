@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<!-- Beispiel-Plugin für Sudo (ab 1.12): eine einzelne HTML-Datei, alles eingebettet, ohne Internet.
+     <title> ist der Name im Sudo; die drei sudo-plugin-Angaben sind freiwillig. -->
+<title>Subnetzrechner</title>
+<meta name="sudo-plugin-id" content="subnetz-rechner">
+<meta name="sudo-plugin-version" content="1.0">
+<meta name="sudo-plugin-size" content="560x520">
+<style>
+  :root { --bg: #12161f; --card: #1a202c; --fg: #e8ecf0; --muted: #8a97a8; --line: #2a3344; --accent: #2ad4c4; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 16px; color: var(--muted); font-size: 12.5px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input { width: 100%; padding: 9px 11px; border-radius: 6px; border: 1px solid var(--line); background: #0f131b; color: var(--fg); font: 15px Consolas, monospace; }
+  input:focus { outline: none; border-color: var(--accent); }
+  .err { color: #f07080; font-size: 12.5px; min-height: 18px; margin-top: 6px; }
+  dl { display: grid; grid-template-columns: 140px 1fr auto; gap: 6px 10px; margin: 14px 0 0; align-items: center; }
+  dt { color: var(--muted); font-size: 12.5px; }
+  dd { margin: 0; font: 14px Consolas, monospace; }
+  button { padding: 3px 9px; border-radius: 5px; border: 1px solid var(--line); background: #222938; color: var(--fg); font-size: 11.5px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<h1>Subnetzrechner</h1>
+<p class="sub">Netz, Broadcast und nutzbare Adressen zu einer IPv4-Adresse – z. B. 10.0.4.17/22 oder 10.0.4.17 255.255.252.0</p>
+<div class="card">
+  <label for="in">IP-Adresse mit Präfix oder Maske</label>
+  <input id="in" value="192.168.10.25/24" autocomplete="off" spellcheck="false">
+  <div class="err" id="err"></div>
+  <dl id="out"></dl>
+</div>
+<script>
+'use strict';
+const ip2n = s => { const p = s.split('.').map(Number); if (p.length !== 4 || p.some(x => !Number.isInteger(x) || x < 0 || x > 255)) return null; return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3]; };
+const n2ip = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+const maskBits = m => { const n = ip2n(m); if (n === null) return null; const b = n.toString(2).padStart(32, '0'); return /^1*0*$/.test(b) ? b.indexOf('0') < 0 ? 32 : b.indexOf('0') : null; };
+function calc(text) {
+  const m = text.trim().match(/^(\d{1,3}(?:\.\d{1,3}){3})\s*(?:\/\s*(\d{1,2})|\s+(\d{1,3}(?:\.\d{1,3}){3}))$/);
+  if (!m) return 'Format: IP/Präfix oder IP Maske';
+  const ip = ip2n(m[1]); if (ip === null) return 'Ungültige IP-Adresse';
+  const bits = m[2] !== undefined ? Number(m[2]) : maskBits(m[3]);
+  if (bits === null || bits > 32) return 'Ungültiges Präfix bzw. ungültige Maske';
+  const mask = bits ? (0xffffffff << (32 - bits)) >>> 0 : 0;
+  const net = (ip & mask) >>> 0, bc = (net | (~mask >>> 0)) >>> 0;
+  const hosts = bits >= 31 ? 2 ** (32 - bits) : 2 ** (32 - bits) - 2;
+  return [['Netz', `${n2ip(net)}/${bits}`], ['Maske', n2ip(mask)], ['Broadcast', n2ip(bc)],
+    ['Erste Adresse', n2ip(bits >= 31 ? net : net + 1)], ['Letzte Adresse', n2ip(bits >= 31 ? bc : bc - 1)], ['Nutzbare Adressen', hosts.toLocaleString('de-DE')]];
+}
+function show() {
+  const r = calc(document.getElementById('in').value), out = document.getElementById('out'), err = document.getElementById('err');
+  out.replaceChildren(); err.textContent = typeof r === 'string' ? r : '';
+  if (typeof r === 'string') return;
+  for (const [k, v] of r) {
+    const b = document.createElement('button'); b.textContent = 'Kopieren';
+    // Zwischenablage ist für Plugins freigegeben (nur schreiben)
+    b.addEventListener('click', () => navigator.clipboard.writeText(v).then(() => { b.textContent = 'Kopiert'; setTimeout(() => { b.textContent = 'Kopieren'; }, 1200); }));
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    out.append(dt, dd, b);
+  }
+}
+document.getElementById('in').addEventListener('input', show);
+show();
+</script>
+</body>
+</html>

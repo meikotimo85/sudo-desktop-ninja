@@ -11,7 +11,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://sudo.meikosoft.net/api/events",
+        "url": "https://sudo.example.com/api/events",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,

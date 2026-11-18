@@ -1,7 +1,7 @@
 {
   "name": "sudo-desktop-ninja",
   "productName": "Sudo",
-  "version": "1.11.0",
+  "version": "1.13.0",
   "description": "Sudo – der Desktop-Ninja für IT-Leute",
   "main": "main.js",
   "author": "MeikoSoft",
@@ -53,6 +53,7 @@
       "preload-start.js",
       "preload-verlauf.js",
       "preload-wissen.js",
+      "plugins.js",
       "preload-selfhelp.js",
       "preload-hinweise.js",
       "preload-music.js",
@@ -151,7 +152,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://updates.meikosoft.net/sudo/"
+        "url": "https://updates.example.com/sudo/"
       }
     ]
   }

@@ -11,6 +11,7 @@ if (isWin) {
     const user32 = koffi.load('user32.dll');
     const dwm = koffi.load('dwmapi.dll');
     const kernel32 = koffi.load('kernel32.dll');
+    const shell32 = koffi.load('shell32.dll');
     const HWND = koffi.pointer('HWND', koffi.opaque());
     const HANDLE = koffi.pointer('HANDLE', koffi.opaque());
 
@@ -30,7 +31,12 @@ if (isWin) {
       GetWindowThreadProcessId: user32.func('uint32_t __stdcall GetWindowThreadProcessId(HWND hWnd, _Out_ uint32_t *pid)'),
       OpenProcess: kernel32.func('HANDLE __stdcall OpenProcess(uint32_t access, bool inherit, uint32_t pid)'),
       QueryFullProcessImageNameW: kernel32.func('bool __stdcall QueryFullProcessImageNameW(HANDLE h, uint32_t flags, void *buf, _Inout_ uint32_t *size)'),
-      CloseHandle: kernel32.func('bool __stdcall CloseHandle(HANDLE h)')
+      CloseHandle: kernel32.func('bool __stdcall CloseHandle(HANDLE h)'),
+      GetSystemMetrics: user32.func('int __stdcall GetSystemMetrics(int index)'),
+      // Gleiche Funktion, aber mit dem Fenster als Zahl (eigenes Overlay, Adresse aus handleToId)
+      GetWindowLongById: user32.func('long __stdcall GetWindowLongW(intptr_t hWnd, int index)'),
+      // 1.13: Explorer über neue Dateiendung informieren (Symbol sofort sichtbar)
+      SHChangeNotify: shell32.func('void __stdcall SHChangeNotify(long wEventId, uint32_t uFlags, void *dwItem1, void *dwItem2)')
     };
   } catch (err) {
     console.error('[win32] koffi konnte nicht geladen werden:', err.message);
@@ -164,4 +170,22 @@ function windowInfos() {
   return out;
 }
 
-module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId };
+/** Läuft die Sitzung gerade über Remotedesktop (RDP)? (SM_REMOTESESSION) */
+function remoteSession() {
+  if (!api) return false;
+  try { return api.GetSystemMetrics(0x1000) !== 0; } catch { return false; }
+}
+
+/** Erweiterter Fensterstil eines Fensters (für den Diagnose-Bericht) */
+function exStyle(id) {
+  if (!api || !id || id === '0') return null;
+  try { return api.GetWindowLongById(BigInt(id), GWL_EXSTYLE) >>> 0; } catch { return null; }
+}
+
+/** Explorer mitteilen, dass sich Dateizuordnungen geändert haben (SHCNE_ASSOCCHANGED) */
+function notifyAssocChanged() {
+  if (!api) return;
+  try { api.SHChangeNotify(0x08000000, 0, null, null); } catch { /* nicht schlimm, dann nach dem nächsten Anmelden */ }
+}
+
+module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged };

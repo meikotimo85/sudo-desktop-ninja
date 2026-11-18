@@ -1,4 +1,4 @@
-# Sudo-Zentrale 1.9.1 – PHP-Version für Webspace
+# Sudo-Zentrale 1.13.0 – PHP-Version für Webspace
 
 Die Sudo-Zentrale für ganz normales Webhosting, **ohne VPS, ohne Docker, ohne Node.js**. Sie kann dasselbe wie die Node-Version und hat dieselbe Verwaltung:
 
@@ -15,22 +15,22 @@ Die Sudo-Zentrale für ganz normales Webhosting, **ohne VPS, ohne Docker, ohne N
 
 ## 1. Installation
 
-1. **Subdomain** `sudo.meikosoft.net` im Hosting-Panel anlegen, Dokumentenverzeichnis z. B. `/sudo-zentrale`, **SSL (Let's Encrypt) aktivieren**.
+1. **Subdomain** `sudo.example.com` im Hosting-Panel anlegen, Dokumentenverzeichnis z. B. `/sudo-zentrale`, **SSL (Let's Encrypt) aktivieren**.
 2. Den Inhalt dieses Ordners per FTP in das Dokumentenverzeichnis laden (inklusive der versteckten Dateien `.htaccess`, `app/.htaccess`, `data/.htaccess`).
 3. Den Ordner `data/` beschreibbar machen (Rechte 755 oder 775 – je nach Hoster).
-4. `https://sudo.meikosoft.net/setup` aufrufen: Die Seite prüft PHP, Erweiterungen, Schreibrechte und erzeugt den Hash fürs Notfall-Passwort.
+4. `https://sudo.example.com/setup` aufrufen: Die Seite prüft PHP, Erweiterungen, Schreibrechte und erzeugt den Hash fürs Notfall-Passwort.
 5. `config.sample.php` als **`config.php`** kopieren und ausfüllen (Abschnitt 2), wieder hochladen.
-6. `https://sudo.meikosoft.net/admin/` → anmelden. Sobald eine Anmeldung eingerichtet ist, zeigt `/setup` nichts mehr an.
+6. `https://sudo.example.com/admin/` → anmelden. Sobald eine Anmeldung eingerichtet ist, zeigt `/setup` nichts mehr an.
 
-Test: `https://sudo.meikosoft.net/healthz` → `{"ok":true,…}`; `https://sudo.meikosoft.net/config.php` und `/data/` müssen **403 – Verboten** liefern.
+Test: `https://sudo.example.com/healthz` → `{"ok":true,…}`; `https://sudo.example.com/config.php` und `/data/` müssen **403 – Verboten** liefern.
 
-**Unterordner statt Subdomain** (z. B. `meikosoft.net/sudo`): In der `.htaccess` `RewriteBase /sudo/` setzen und `public_url` entsprechend eintragen.
+**Unterordner statt Subdomain** (z. B. `example.com/sudo`): In der `.htaccess` `RewriteBase /sudo/` setzen und `public_url` entsprechend eintragen.
 
 ## 2. `config.php`
 
 | Eintrag | Bedeutung |
 |---|---|
-| `public_url` | `https://sudo.meikosoft.net` – ohne Schrägstrich am Ende |
+| `public_url` | `https://sudo.example.com` – ohne Schrägstrich am Ende |
 | `db` | Standard: SQLite-Datei in `data/` (nichts einzurichten). Alternativ MySQL: `'dsn' => 'mysql:host=localhost;dbname=…;charset=utf8mb4'`, `user`, `pass` |
 | `entra` | `tenant`, `client_id`, `client_secret` aus der App-Registrierung (siehe 3.) |
 | `admin_users` | Wer in die Verwaltung darf, z. B. `['admin@firma.de']` |
@@ -44,7 +44,7 @@ Die Tabellen legt die Zentrale beim ersten Aufruf selbst an – auch bei MySQL.
 
 ## 3. Anmeldung mit Microsoft Entra ID
 
-1. **Entra Admin Center → App-Registrierungen → Neue Registrierung**: Name `Sudo-Zentrale`, *Nur Konten in diesem Organisationsverzeichnis*, Umleitungs-URI **Web** `https://sudo.meikosoft.net/auth/callback`.
+1. **Entra Admin Center → App-Registrierungen → Neue Registrierung**: Name `Sudo-Zentrale`, *Nur Konten in diesem Organisationsverzeichnis*, Umleitungs-URI **Web** `https://sudo.example.com/auth/callback`.
 2. **Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel** → Wert kopieren.
 3. **Verzeichnis-ID (Mandant)** und **Anwendungs-ID (Client)** von der Übersichtsseite übernehmen.
 4. Standard-Berechtigungen (`openid`, `profile`, `email`) reichen. Optional Gruppenanspruch für `admin_group`.
@@ -58,7 +58,7 @@ Die Tabellen legt die Zentrale beim ersten Aufruf selbst an – auch bei MySQL.
 4. **Schnittstellen → API-Schlüssel** für Skripte. Beispiel in PHP: `examples/sudo-zentrale-notify.php` im Sudo-Ordner.
 
 ```bash
-curl -X POST https://sudo.meikosoft.net/api/events \
+curl -X POST https://sudo.example.com/api/events \
   -H "Authorization: Bearer szk_…" -H "Content-Type: application/json" \
   -d '{"type":"backup_failed","kunde":"Muster GmbH","target":"group:IT"}'
 ```
@@ -95,13 +95,15 @@ Einrichtung:
 
 **Regeln (ab 1.7):** Unter **Regeln** ordnet die Zentrale Meldungen der Schnittstelle selbst ein. So wird z. B. aus dem Ticket „Datensicherung Failed Muster GmbH“ ein Alarm „Backup fehlgeschlagen – Muster GmbH“ mit Klick zum Ticket. Drei Regeln sind dabei (Backup, Server nicht erreichbar, Zertifikat). Mit dem Testfeld prüfst du jeden Titel, ohne etwas zu senden. Einzelheiten stehen in API-ANLEITUNG.md, Abschnitt 3a.
 
+**Plugins (ab 1.12):** Unter **Plugins** lädst du kleine Werkzeuge als einzelne `.sudoplugin`- oder HTML-Datei hoch (höchstens 2 MB) und weist sie allen, einer Gruppe oder einer Person zu. Die Sudos holen sie sich von selbst und öffnen sie abgeschottet: ohne Internet, ohne Zugriff auf Sudo oder Dateien. Gleiche Kennung ersetzt die alte Fassung, „pausiert“ blendet ein Plugin aus, „Entfernen“ löscht es auch auf den PCs. Mit dem Schalter „Eigene Plugins der Mitarbeitenden“ legst du fest, ob jeder zusätzlich eigene hinzufügen darf. Die Tabelle legt die Zentrale beim ersten Aufruf selbst an.
+
 **Mitarbeiter-Erlebnis (ab 1.10):** Im Bereich **Mitarbeiter-Erlebnis** stellst du kurze **Stimmungsfragen** (1–5 Sterne, an alle oder eine Gruppe, mit Laufzeit) und schaltest optional eine **Monatsfrage** zur Zufriedenheit ein. Antworten speichert die Zentrale ohne Gerät – nur Sterne, Ampel des Gerätezustands und Tag; ausgewertet wird erst ab 5 Antworten (einstellbar 3–20), dann auch getrennt nach Gerätezustand. Nach einer beendeten Störung fragt Sudo die Betroffenen **„Läuft es wieder?“** – wer „Geht noch nicht“ antwortet, steht mit Namen in der Liste und im Protokoll. Die **Start-Checkliste** (mitgeliefert: MFA, OneDrive, Ordnersicherung, Teams, Signatur, Drucker, Gerätezustand, Quiz – eigene Punkte möglich) ist zunächst aus; eingeschaltet zeigen neue Sudos sie in den ersten 30 Tagen, du siehst den Stand je Gerät und kannst sie einem Gerät „erneut zeigen“. Außerdem: **eigene Tipps** je Programm, die Sudo im passenden Moment zeigt. Die neuen Tabellen legt die Zentrale beim ersten Aufruf selbst an.
 
 **Störungen & Neustarts (ab 1.6):** Unter **Störungen & Neustarts** meldest du Störungen (Info, Störung, Ausfall – an alle, eine Gruppe oder eine Person). Sie stehen bei den Sudos, bis du sie beendest; Kollegen melden sich mit „Ich bin auch betroffen“, du siehst Anzahl und Geräte. Beim Beenden geht eine Entwarnung raus. Störungen lassen sich auch per Schnittstelle öffnen und beenden (siehe API-ANLEITUNG.md, z. B. aus dem Monitoring). **Neustart-Kampagnen** bitten um einen Neustart bis zu einer Frist – für alle oder nur Geräte mit ausstehendem Neustart/langer Laufzeit – und zeigen pro Gerät: offen, verschoben (wie oft), erledigt. Außerdem: anonyme Nutzung der **Selbsthilfe** (welches Werkzeug hilft wie oft) und der **Hilfe-Kontakt** (Telefon, Mail, Portal), den die Sudos unter „Hat nicht geholfen?“ anzeigen. Die neuen Tabellen legt die Zentrale beim ersten Aufruf selbst an.
 
 **Besuche (ab 1.4):** Unter **KI & Besuche** schaltest du Besuche zwischen den Sudos ein/aus und legst fest, wie viele ein Gerät pro Tag schicken (Standard 2) und empfangen (Standard 3) darf. Darunter stehen die letzten Besuche; jeder Besuch und jedes Duell landet auch im **Protokoll** – mit Absender und Post-it-Text. Post-its sind auf 60 Zeichen begrenzt, HTML wird entfernt. Die Datenbank wird beim ersten Aufruf automatisch erweitert (Tabelle `visits`, zwei neue Spalten bei `devices`).
 
-**Info-Seite für Mitarbeitende (ab 1.4.1):** Den Ordner der Sudo-Website als `info/` neben `index.php` hochladen. Sie ist dann unter `https://sudo.meikosoft.net/info/` erreichbar, und die Startseite der Zentrale verlinkt sie mit „Was ist Sudo?“. Details stehen in der LIESMICH der Website.
+**Info-Seite für Mitarbeitende (ab 1.4.1):** Den Ordner der Sudo-Website als `info/` neben `index.php` hochladen. Sie ist dann unter `https://sudo.example.com/info/` erreichbar, und die Startseite der Zentrale verlinkt sie mit „Was ist Sudo?“. Details stehen in der LIESMICH der Website.
 
 ## 5. Gut zu wissen
 

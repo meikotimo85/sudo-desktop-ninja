@@ -29,6 +29,9 @@ ICONS = {
              '.KYYYYYYYYK.', 'KYYYYYYYYYYK', 'KKKKKKKKKKKK', '....KOOK....', '.....KK.....'],
   'tools':  ['....KKKK....', '...KK..KK...', '...K....K...', 'KKKKKKKKKKKK', 'KRRRRRRRRRRK', 'KRRRRRRRRRRK', 'KKKKKSSKKKKK',
              'KRRRRSSRRRRK', 'KRRRRRRRRRRK', 'KRRRRRRRRRRK', 'KRRRRRRRRRRK', 'KKKKKKKKKKKK'],
+  # 1.12: Puzzleteil für das Plugins-Untermenü
+  'plugin': ['....KKK.....', '...KVVVK....', 'KKKKVVVKKK..', 'KVVVVVVVVK..', 'KVVWVVVVVKK.', 'KVVVVVVVVVVK', 'KVVVVVVVVVVK',
+             'KVVVVVVVVKK.', 'KVVVVVVVVK..', 'KVVVVVVVVK..', 'KKKKKKKKKK..', '............'],
   'music':  ['......KKKKKK', '......KVVVVK', '......KVKKKK', '......KVK...', '......KVK...', '......KVK...', '......KVK...',
              '...KKKKVK...', '..KVVVVVK...', '..KVVVVVK...', '..KVVVVK....', '...KKKK.....'],
   'history': ['.KKKKKKKKKK.', 'KWWWWWWWWWWK', 'KWKKKKKKKKWK', 'KWWWWWWWWWWK', 'KWKKKKKKWWWK', 'KWWWWWWWWWWK', 'KWKKKKKWWWWK',

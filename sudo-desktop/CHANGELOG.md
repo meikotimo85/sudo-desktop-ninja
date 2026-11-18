@@ -4,6 +4,28 @@ Unveröffentlicht – Linux-Version (Vorschau)
   • Ninja-Leiste mit Linux-Programmen (Terminal, Root-Terminal über pkexec, Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt)
   • Autostart über ~/.config/autostart, Zentrale-Vorgabe aus /etc/sudo-desktop/zentrale.json, Neustart-Kampagnen über shutdown -r +2
 
+1.13.0 – Plugins per Doppelklick: Endung .sudoplugin (Zentrale 1.13.0)
+  • Dateien mit der Endung .sudoplugin haben im Explorer ein eigenes Pixel-Symbol (Blatt mit violettem Puzzleteil). Ein Doppelklick öffnet Sudo und fragt, ob das Plugin hinzugefügt werden soll – „Hinzufügen und öffnen“, „Nur hinzufügen“ oder „Abbrechen“; läuft Sudo schon, kommt die Frage dort
+  • Sudo trägt die Endung beim Start für den angemeldeten Benutzer ein (ohne Adminrechte, für Setup, MSI und portable EXE) und nur dann neu, wenn sich etwas geändert hat
+  • Einstellungen → Plugins und die Verwaltung der Zentrale nehmen .sudoplugin- und HTML-Dateien an
+  • Hat die IT eigene Plugins verboten oder ist die Datei kein Plugin, sagt Sudo das statt still nichts zu tun
+
+1.12.1 – Plugins im Tray-Menü sichtbarer (Zentrale bleibt 1.12.0)
+  • Repo als Vorlage: Beispiele und Vorgaben nutzen sudo.example.com und updates.example.com. Die echte Update-Adresse steht in update-adresse.txt neben BAUEN.bat (nicht im Repo); BAUEN.bat übergibt sie beim Bauen. zentrale-vorgabe.ps1 bricht mit Hinweis ab, wenn keine Adresse eingetragen ist
+  • Das Untermenü „Plugins“ im Tray hat ein eigenes Puzzle-Symbol statt des Werkzeugkasten-Symbols. Es erscheint, sobald die Zentrale Plugins vorgibt oder du selbst eins hinzufügst, und listet alle mit „Plugins verwalten …“ am Ende
+
+1.12.0 – Plugins (Zentrale 1.12.0)
+  • Plugins: kleine Zusatzwerkzeuge als einzelne HTML-Datei, z. B. ein Namens-Generator für eure Kunden. Sie erscheinen im Tray-Menü unter „Plugins“ und in den Einstellungen im neuen Reiter „Plugins“
+  • Selbst hinzufügen (Einstellungen → Plugins → Datei wählen) oder von der IT über die Sudo-Zentrale verteilen lassen – an alle, eine Gruppe oder einzelne Personen; neue Fassungen kommen von selbst
+  • Abgeschottet: Ein Plugin läuft in einem eigenen Fenster ohne Internet, ohne Zugriff auf Sudo, Dateien oder andere Plugins und mit eigenem Speicher. Erlaubt sind Zwischenablage (schreiben), Rückfragen und Speichern über den Speichern-Dialog
+  • Zentrale: neuer Bereich „Plugins“ (Hochladen, Ziel, Pausieren, Entfernen) und Schalter, ob Mitarbeitende eigene Plugins hinzufügen dürfen
+  • Beispiel-Plugin „Subnetzrechner“ unter examples/plugins
+
+1.11.1 – Klicken nach RDP-Wechsel (Zentrale bleibt 1.10.0)
+  • Sudo ließ sich nach einem Wechsel zwischen lokaler und Remotedesktop-Sitzung manchmal nicht mehr ziehen oder anklicken: Meldete Windows „gesperrt“, aber nie „entsperrt“, blieb Sudo pausiert und durchklickbar. Sudo erkennt das jetzt selbst und erzeugt das Overlay neu
+  • Wechsel lokal ↔ Remotedesktop wird erkannt, das Overlay wird dann wie nach dem Entsperren frisch erzeugt
+  • Diagnose-Bericht zeigt zusätzlich Remotedesktop, Sperre und ob das Overlay gerade klickbar ist
+
 1.11.0 – Verlauf mit Suche, Sudo im Detail (Zentrale bleibt 1.10.0)
   • Verlauf „Was hat Sudo gesagt?“ durchsuchen: Text, Ticket-Nummer und Gerätekennung, dazu Zeitraum (Heute, 7 oder 30 Tage, Von … bis …) und Quelle; Ticket und Gerät stehen als Marke unter der Meldung
   • Aufbewahrung einstellbar: Aus, 7, 30 (neuer Standard, bisher 7), 90 Tage oder 1 Jahr, höchstens 2000 Einträge (bisher 50); Abgelaufenes wird aus der Datei gelöscht, kürzer stellen löscht sofort

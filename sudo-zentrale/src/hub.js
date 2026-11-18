@@ -44,7 +44,7 @@ function createHub({ store, log, appInfo }) {
 
   const online = () => [...conns.keys()];
   const isOnline = id => conns.has(id) && conns.get(id).size > 0;
-  let opsFor = () => undefined, mediaFor = () => undefined, kbFor = () => undefined, dexFor = () => undefined;   // 1.10: dex = Mitarbeiter-Erlebnis   // 1.6/1.8: je Gerät (setzt server.js)                 // 1.6: Störungen/Neustarts/Hilfe je Gerät (setzt server.js)
+  let opsFor = () => undefined, mediaFor = () => undefined, kbFor = () => undefined, dexFor = () => undefined, pluginsFor = () => undefined;   // 1.10: dex = Mitarbeiter-Erlebnis   // 1.6/1.8: je Gerät (setzt server.js)                 // 1.6: Störungen/Neustarts/Hilfe je Gerät (setzt server.js)
   const sendTo = (id, obj) => { for (const ws of conns.get(id) || []) { try { ws.send(JSON.stringify(obj)); } catch { /* weg */ } } };
 
   function pending(dev) {
@@ -100,7 +100,7 @@ function createHub({ store, log, appInfo }) {
         conns.get(dev.id).add(socket);
         const s = store.settings();
         socket.send(JSON.stringify({ t: 'welcome', device: { id: dev.id, name: dev.name, groups: String(dev.groups_ || '').split(',').map(g => g.trim()).filter(Boolean) }, server: appInfo,
-          ai: { enabled: s.ai_enabled === 'true', models: s.ai_models.split(','), context: s.ai_context === 'true' }, health: sec.healthPublic(s), quiz: sec.quizPublic(s, store), ops: opsFor(dev, s), media: mediaFor(dev, s), kb: kbFor(dev, s), dex: dexFor(dev, s) }));
+          ai: { enabled: s.ai_enabled === 'true', models: s.ai_models.split(','), context: s.ai_context === 'true' }, health: sec.healthPublic(s), quiz: sec.quizPublic(s, store), ops: opsFor(dev, s), media: mediaFor(dev, s), kb: kbFor(dev, s), dex: dexFor(dev, s), plugins: pluginsFor(dev, s) }));
         for (const m of pending(dev)) deliver(dev, m);
         return;
       }
@@ -120,13 +120,13 @@ function createHub({ store, log, appInfo }) {
 
   // Gerät gesperrt: Verbindung sofort trennen
   function kick(id) { for (const ws of conns.get(id) || []) { try { ws.close(4003, 'revoked'); } catch { /* weg */ } } conns.delete(id); }
-  const configFor = (d, s) => ({ ai: { enabled: s.ai_enabled === 'true', models: s.ai_models.split(','), context: s.ai_context === 'true' }, health: sec.healthPublic(s), quiz: sec.quizPublic(s, store), ops: opsFor(d, s), media: mediaFor(d, s), kb: kbFor(d, s), dex: dexFor(d, s) });
+  const configFor = (d, s) => ({ ai: { enabled: s.ai_enabled === 'true', models: s.ai_models.split(','), context: s.ai_context === 'true' }, health: sec.healthPublic(s), quiz: sec.quizPublic(s, store), ops: opsFor(d, s), media: mediaFor(d, s), kb: kbFor(d, s), dex: dexFor(d, s), plugins: pluginsFor(d, s) });
   function refreshConfig() {
     const s = store.settings();
     for (const id of online()) { const d = store.get('SELECT * FROM devices WHERE id = ? AND revoked = 0', id); if (d) sendTo(id, { t: 'config', ...configFor(d, s) }); }
   }
 
-  return { handle, publish, online, isOnline, kick, refreshConfig, matches, setOps: fn => { opsFor = fn; }, setMedia: fn => { mediaFor = fn; }, setKb: fn => { kbFor = fn; }, setDex: fn => { dexFor = fn; } };
+  return { handle, publish, online, isOnline, kick, refreshConfig, matches, setOps: fn => { opsFor = fn; }, setMedia: fn => { mediaFor = fn; }, setKb: fn => { kbFor = fn; }, setDex: fn => { dexFor = fn; }, setPlugins: fn => { pluginsFor = fn; } };
 }
 
 module.exports = { createHub, cleanEvent, EVENT_TYPES, groupsOf, validTarget, cleanUpn, matches };

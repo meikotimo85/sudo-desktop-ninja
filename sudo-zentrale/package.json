@@ -1,6 +1,6 @@
 {
   "name": "sudo-zentrale",
-  "version": "1.10.0",
+  "version": "1.13.0",
   "description": "Sudo-Zentrale: Meldungen an alle Sudos, Ereignis-API, KI-Proxy mit Budget, Admin mit Entra-ID-Login",
   "main": "src/server.js",
   "private": true,

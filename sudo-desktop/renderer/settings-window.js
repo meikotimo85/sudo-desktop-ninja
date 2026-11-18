@@ -66,7 +66,7 @@
           el('button', { class: 'act', text: 'Abmelden', on: { click: async () => { if (!confirm(tr('Diesen PC wirklich von der Zentrale abmelden? Für eine neue Anmeldung braucht es wieder einen Registrierungscode.'))) return; done(await host.action('zentraleLeave')); snap = await host.get(); render(); } } })),
         msg);
     }
-    const url = el('input', { type: 'text', class: 'inp', 'aria-label': 'Adresse der Zentrale', placeholder: 'https://sudo.meikosoft.net', value: z.url || '' });
+    const url = el('input', { type: 'text', class: 'inp', 'aria-label': 'Adresse der Zentrale', placeholder: 'https://sudo.example.com', value: z.url || '' });
     const code = el('input', { type: 'text', class: 'inp', 'aria-label': 'Registrierungscode', placeholder: 'SZ-XXXX-XXXX-XXXX-XXXX', autocomplete: 'off' });
     return section('Sudo-Zentrale',
       el('div', { class: 'form' },
@@ -316,6 +316,28 @@
           button('Skin neu laden', 'Nach dem Bearbeiten', 'Neu laden', 'skinReload'))
       ];
     },
+    // 1.12: Plugins – kleine Zusatzwerkzeuge, abgeschottet
+    plugins() {
+      const pl = snap.plugins || { allowed: true, items: [] };
+      const msg = el('div', { class: 'msg' });
+      const done = r => { msg.className = 'msg' + (r && r.ok === false ? ' bad' : ''); msg.textContent = (r && r.msg) || ''; };
+      const rows = pl.items.map(p => el('div', { class: 'row' },
+        el('div', { class: 't' }, el('b', { 'data-noi18n': '', text: p.name }),
+          el('small', { text: (p.source === 'zentrale' ? tr('Von deiner IT') : tr('Eigenes Plugin')) + (p.version ? ' · ' + tr('Version {x}').replace('{x}', p.version) : '') })),
+        el('div', { class: 'acts' },
+          el('button', { class: 'act primary', text: 'Öffnen', on: { click: () => host.action('pluginOpen', { source: p.source, id: p.id }) } }),
+          p.source === 'eigene' ? el('button', { class: 'act', text: 'Entfernen', on: { click: async () => { const r = await host.action('pluginRemove', p.id); snap = await host.get(); render(); done(r); } } }) : null)));
+      return [
+        section('Plugins',
+          ...(rows.length ? rows : [el('p', { class: 'note', text: 'Noch keine Plugins.' })]),
+          pl.allowed
+            ? el('div', { class: 'row' }, el('div', { class: 't' }, el('b', { text: 'Plugin hinzufügen' }), el('small', { text: 'Eine .sudoplugin- oder HTML-Datei, z. B. ein Werkzeug deiner Firma. Gleicher Name ersetzt die alte Fassung. Ein Doppelklick auf eine .sudoplugin-Datei geht auch.' }), msg),
+              el('button', { class: 'act', text: 'Datei wählen …', on: { click: async () => { const r = await host.action('pluginAdd'); snap = await host.get(); render(); done(r); } } }))
+            : el('p', { class: 'note', text: 'Deine IT erlaubt keine eigenen Plugins. Plugins der IT kommen über die Sudo-Zentrale.' })),
+        section('Sicherheit',
+          el('p', { class: 'note', text: 'Plugins laufen abgeschottet in einem eigenen Fenster: ohne Internet, ohne Zugriff auf Sudo, deine Dateien oder andere Plugins. Sie dürfen nur Text in die Zwischenablage legen und Dateien über den Speichern-Dialog sichern. Füge trotzdem nur Plugins aus vertrauenswürdiger Quelle hinzu.' }))
+      ];
+    },
     info() {
       const i = snap.info, u = snap.update || {};
       const upState = { idle: 'noch nicht geprüft', checking: 'prüft …', current: 'aktuell', downloading: `lädt ${u.version || ''} … ${u.progress || 0} %`, ready: `${u.version} bereit`, error: 'Fehler' }[u.state] || u.state;
@@ -373,6 +395,7 @@
   host.onTab(t => { if (TABS[t]) { tab = t; render(); } });   // spätere Wünsche (Fenster schon offen)
   host.onUpdate(u => { snap.update = u; if (tab === 'info') render(); });
   if (host.onDiag) host.onDiag(async () => { if (tab === 'info') { snap = await host.get(); render(); } });
+  if (host.onPlugins) host.onPlugins(async () => { if (tab === 'plugins') { snap = await host.get(); render(); } });
   host.onZentrale(z => { snap.zentrale = z; const a = document.activeElement; if ((tab === 'data' || tab === 'ai') && !(a && a.tagName === 'INPUT')) render(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
   render();

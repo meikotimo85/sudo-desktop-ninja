@@ -203,4 +203,15 @@ function windowInfos() {
   return out;
 }
 
-module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId };
+/** Läuft die Sitzung über Remotedesktop? Unter Linux: xrdp (auch die „erweiterte Sitzung“ von Hyper-V) */
+function remoteSession() {
+  return !!(process.env.XRDP_SESSION || process.env.XRDP_SOCKET_PATH);
+}
+
+/** Fensterstil gibt es nur unter Windows – der Diagnose-Bericht lässt die Angabe dann weg */
+function exStyle() { return null; }
+
+/** Dateizuordnungen meldet Linux über die Desktop-Datenbank selbst – hier nichts zu tun */
+function notifyAssocChanged() { /* nichts */ }
+
+module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged };

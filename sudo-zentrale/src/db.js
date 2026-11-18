@@ -76,6 +76,10 @@ CREATE TABLE IF NOT EXISTS incident_feedback (incident_id INTEGER NOT NULL, devi
 CREATE TABLE IF NOT EXISTS onboard_items (id INTEGER PRIMARY KEY AUTOINCREMENT, pos INTEGER NOT NULL DEFAULT 100, title TEXT NOT NULL, text TEXT, check_ TEXT NOT NULL DEFAULT 'manual', link TEXT,
   target TEXT NOT NULL DEFAULT 'all', active INTEGER NOT NULL DEFAULT 1, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS onboard_status (device_id TEXT NOT NULL, item_id INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0, auto INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL, PRIMARY KEY (device_id, item_id));
+-- 1.12: Plugins – HTML-Werkzeuge für die Sudos
+CREATE TABLE IF NOT EXISTS plugins (id TEXT PRIMARY KEY, name TEXT NOT NULL, version TEXT NOT NULL DEFAULT '', html TEXT NOT NULL, sha TEXT NOT NULL,
+  size INTEGER NOT NULL DEFAULT 0, w INTEGER NOT NULL DEFAULT 900, h INTEGER NOT NULL DEFAULT 720, target TEXT NOT NULL DEFAULT 'all',
+  active INTEGER NOT NULL DEFAULT 1, author TEXT, created INTEGER NOT NULL, updated INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_messages_expires ON messages(expires);
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit(ts);
 `;
@@ -91,7 +95,8 @@ const DEFAULT_SETTINGS = {
   quiz_enabled: 'true', quiz_per_week: '2', health_report: 'true',              // Security-Quiz und Gerätezustand (1.5)
   // 1.10: Mitarbeiter-Erlebnis – Stimmung, Rückmeldung nach Störungen, Start-Checkliste, Tipps
   pulse_enabled: 'true', pulse_monthly: 'false', pulse_incident: 'true', pulse_min: '5',
-  onboard_enabled: 'false', onboard_days: '30', tips_enabled: 'true', tips_custom: '[]'
+  onboard_enabled: 'false', onboard_days: '30', tips_enabled: 'true', tips_custom: '[]',
+  plugins_user: 'true'          // 1.12: eigene Plugins der Mitarbeitenden erlaubt
 };
 
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');

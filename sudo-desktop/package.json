@@ -1,8 +1,9 @@
 {
   "name": "sudo-desktop-ninja",
   "productName": "Sudo",
-  "version": "1.14.0",
+  "version": "1.14.1",
   "description": "Sudo – der Desktop-Ninja für IT-Leute",
+  "homepage": "https://github.com/meikotimo85/sudo-desktop-ninja",
   "main": "main.js",
   "author": "MeikoSoft",
   "license": "AGPL-3.0-or-later",

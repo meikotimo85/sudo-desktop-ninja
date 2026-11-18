@@ -1,5 +1,5 @@
 # Linux-Bau von Sudo (AppImage + .deb) auf einem GitHub-Rechner mit Ubuntu.
-# Unter Windows scheitert der AppImage-Bau ohne Entwicklermodus an symbolischen Links – hier nicht.
+# Unter Windows geht der AppImage-Bau nicht (mksquashfs gibt es nur für Linux und macOS) – deshalb hier auf Ubuntu.
 # Start: GitHub → Actions → „Linux bauen“ → „Run workflow“. Ergebnis unten unter „Artifacts“.
 # Update-Adresse für das Selbst-Update der AppImage: Repository → Settings → Secrets and variables → Actions →
 # Reiter „Variables“ → SUDO_UPDATE_URL (z. B. https://updates.example.com/sudo/). Ohne Variable: Beispieladresse.

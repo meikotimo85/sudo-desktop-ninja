@@ -1,4 +1,4 @@
-# Sudo – Desktop-Ninja 1.14.0
+# Sudo – Desktop-Ninja 1.14.1
 
 Sudo lebt auf deinem Windows-Desktop: Er läuft auf der Taskleiste, springt auf die Oberkanten deiner echten Fenster, tippt mit, wenn du tippst, erinnert dich an Pausen und meldet sich, wenn in der IT etwas brennt.
 
@@ -106,7 +106,7 @@ Sudo läuft auch unter Linux (getestet für Ubuntu/Debian mit GNOME, KDE, Xfce):
 - **Tray:** GNOME zeigt Tray-Symbole nur mit der Erweiterung „AppIndicator“. Ohne sie geht alles über den **Rechtsklick auf Sudo**.
 - **Ninja-Rad:** Terminal, Terminal (Root, fragt über pkexec), Dateien, Systemmonitor, Systemeinstellungen, Rechner, Ausschnitt – es wird das erste vorhandene Programm genommen.
 - **Zentrale vorgeben:** `sudo sh linux/zentrale-vorgabe.sh https://sudo.example.com SZ-…` schreibt `/etc/sudo-desktop/zentrale.json` (auch über NinjaOne/Ansible mit `SudoUrl`/`SudoCode`).
-- **Bauen:** am einfachsten auf GitHub → Actions → „Linux bauen“ (Ergebnis unter „Artifacts“; Update-Adresse als Variable `SUDO_UPDATE_URL`). Unter Windows geht `BAUEN.bat` → [5] nur mit eingeschaltetem Entwicklermodus (Einstellungen → System → Für Entwickler), weil die AppImage symbolische Links braucht.
+- **Bauen:** am einfachsten auf GitHub → Actions → „Linux bauen“ (Ergebnis unter „Artifacts“; Update-Adresse als Variable `SUDO_UPDATE_URL`). Unter Windows lässt sich keine AppImage bauen: electron-builder bringt das nötige Packwerkzeug (mksquashfs) nur für Linux und macOS mit. Auf einem Linux-PC oder in WSL geht `npm run dist:linux`.
 
 ## Sudo-Zentrale
 

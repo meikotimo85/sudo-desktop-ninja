@@ -767,11 +767,12 @@ let deckRadial = false, deckBoxes = [], deckRing = null;
 function openRadial(d) {
   const items = d.items || [];
   if (!items.length) return false;
-  const n = items.length, R = Math.max(82, Math.ceil(n * 60 / (2 * Math.PI)));
+  // Oben bleibt ein Platz frei – dort steht der Name, ohne dass eine Schaltfläche ihn verdeckt
+  const n = items.length, slots = n + 1, R = Math.max(82, Math.ceil(slots * 60 / (2 * Math.PI)));
   const lbl = mk('div', 'lbl', T('Ninja-Rad'));
   const rest = () => { lbl.textContent = T('Ninja-Rad'); lbl.classList.remove('plugin'); };
   const btns = items.map((it, i) => {
-    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    const a = -Math.PI / 2 + (i + 1) * 2 * Math.PI / slots;
     const dx = Math.round(R * Math.cos(a)) - 26, dy = Math.round(R * Math.sin(a)) - 26;
     const b = mk('button', 'ri' + (it.plugin ? ' plugin' : ''));
     const name = T(it.name) + (it.admin ? ' · ' + T('als Administrator') : '') + (it.own ? ' ' + T('(eigenes)') : '');
@@ -832,11 +833,11 @@ function placeDeck() {
   if (deckRadial && deckRing) {
     // Mitte des Rads = Mitte von Sudo, aber so verschoben, dass alle Schaltflächen auf dem Bildschirm bleiben
     const m = deckRing.R + 34;
-    const cx = clamp(N.x, m, W - m), cy = clamp(N.y - N.lift - (TOP - 1) * S / 2, m, Math.min(H, FLOOR || H) - m);
+    const cx = clamp(N.x, m, W - m), cy = clamp(N.y - N.lift - (TOP - 1) * S / 2, m + 34, Math.min(H, FLOOR || H) - m);   // oben Platz für den Namen
     deckEl.style.transform = `translate(${Math.round(cx)}px,${Math.round(cy)}px)`;
-    // Name über Sudos Kopf (das Rad kann gegenüber Sudo verschoben sein)
+    // Name über dem Rad – verdeckt so keine Schaltfläche, auch bei langen Namen
     const lbl = deckEl.firstChild;
-    if (lbl) lbl.style.transform = `translate(calc(-50% + ${Math.round(N.x - cx)}px), ${Math.round(N.y - N.lift - (TOP - 1) * S - 30 - cy)}px)`;
+    if (lbl) lbl.style.transform = `translate(-50%, ${-deckRing.R - 62}px)`;
     deckBoxes = deckRing.btns.map(({ dx, dy }) => [cx + dx - 3, cy + dy - 3, cx + dx + 55, cy + dy + 55].map(Math.round));
     deckRect = null;
     return;

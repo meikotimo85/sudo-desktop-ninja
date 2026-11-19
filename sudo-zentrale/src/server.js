@@ -129,6 +129,23 @@ app.get('/api/device', async (req, reply) => {
 
 app.register(async f => { f.get('/api/ws', { websocket: true }, (socket, req) => hub.handle(socket, req)); });
 
+/* ---------- Ideen-Board (1.15): öffentlich für die Infoseite ---------- */
+const { createIdeas, IdeaError, MAIL_RE } = require('./ideas');
+const mailer = require('./mail').createMailer({ url: env.SMTP_URL, from: env.MAIL_FROM, dir: env.MAIL_DIR, publicUrl: cfg.publicUrl });
+const ideas = createIdeas(store, { mailer, publicUrl: cfg.publicUrl });
+const ideaTry = (reply, fn) => { try { return fn(); } catch (e) { if (e instanceof IdeaError) return err(reply, e.code, e.message); throw e; } };
+const jsonBody = req => { if (typeof req.body === 'string') { try { const j = JSON.parse(req.body); return j && typeof j === 'object' ? j : {}; } catch { return {}; } } return req.body || {}; };
+const preflight = async (req, reply) => { ideas.cors(req, reply); return reply.code(204).send(); };
+app.options('/api/ideas', preflight);
+app.options('/api/ideas/:id/vote', preflight);
+app.get('/api/ideas', async (req, reply) => { ideas.cors(req, reply); return ideas.list(); });
+app.post('/api/ideas', async (req, reply) => { ideas.cors(req, reply); return ideaTry(reply, () => ideas.submit(jsonBody(req), req.ip)); });
+app.post('/api/ideas/:id/vote', async (req, reply) => {
+  ideas.cors(req, reply);
+  if (!/^\d{1,9}$/.test(req.params.id)) return err(reply, 404, 'Nicht gefunden.');
+  return ideaTry(reply, () => ideas.vote(req.params.id, jsonBody(req), req.ip));
+});
+
 /* ---------- Skins (1.14): Grafik eines Skins für dieses Gerät ---------- */
 app.get('/api/skins/:id', { config: { rateLimit: { max: 300, timeWindow: '1 hour', keyGenerator: req => bearer(req).slice(0, 16) || req.ip } } }, async (req, reply) => {
   const d = deviceFrom(req); if (!d) return err(reply, 401, 'Gerät unbekannt oder gesperrt.');
@@ -568,7 +585,11 @@ app.register(async a => {
       // 1.12: Plugins
       plugins_user: v => ['true', 'false'].includes(String(v)),
       // 1.14: Skin-Store
-      skins_free: v => ['true', 'false'].includes(String(v))
+      skins_free: v => ['true', 'false'].includes(String(v)),
+      // 1.15: Ideen-Board
+      ideas_enabled: v => ['true', 'false'].includes(String(v)), ideas_auto: v => ['true', 'false'].includes(String(v)),
+      ideas_mail: v => typeof v === 'string' && (v === '' || (v.length <= 120 && MAIL_RE.test(v))),
+      ideas_origins: v => typeof v === 'string' && v.length <= 500 && /^(\s*https?:\/\/[a-z0-9.-]+(:\d{1,5})?\/?\s*[,;]?)*$/i.test(v)
     };
     for (const [k, v] of Object.entries(b)) {
       if (!ok[k]) continue;
@@ -715,6 +736,11 @@ app.register(async a => {
   a.post('/plugins', { bodyLimit: 3 * 1024 * 1024 }, async (req, reply) => opsTry(reply, () => { const r = plugins.save(req.body || {}, who(req)); hub.refreshConfig(); return r; }));
   a.patch('/plugins/:id', async (req, reply) => opsTry(reply, () => { plugins.patch(req.params.id, req.body || {}, who(req)); hub.refreshConfig(); return { ok: true }; }));
   a.delete('/plugins/:id', async (req, reply) => opsTry(reply, () => { plugins.remove(req.params.id, who(req)); hub.refreshConfig(); return { ok: true }; }));
+
+  /* Ideen-Board (1.15) */
+  a.get('/ideas', async () => ideas.admin());
+  a.patch('/ideas/:id', async (req, reply) => /^\d{1,9}$/.test(req.params.id) ? ideaTry(reply, () => { ideas.patch(req.params.id, req.body || {}, who(req)); return { ok: true }; }) : err(reply, 404, 'Unbekannte Admin-Adresse.'));
+  a.delete('/ideas/:id', async (req, reply) => /^\d{1,9}$/.test(req.params.id) ? ideaTry(reply, () => { ideas.remove(req.params.id, who(req)); return { ok: true }; }) : err(reply, 404, 'Unbekannte Admin-Adresse.'));
 
   a.get('/audit', async () => store.all('SELECT * FROM audit ORDER BY id DESC LIMIT 200'));
 }, { prefix: '/admin/api' });

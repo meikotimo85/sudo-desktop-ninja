@@ -13,6 +13,7 @@
 <script src="js/sudo.js" defer></script>
 <script src="skins/katalog.js" defer></script>
 <script src="js/store.js" defer></script>
+<script src="js/ideen.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#inhalt">Zum Inhalt springen</a>
@@ -23,6 +24,7 @@
     <a href="#funktionen">Funktionen</a>
     <a href="#bedienung">Bedienung</a>
     <a href="#store">Skins</a>
+    <a href="#ideen" id="nav-ideen" hidden>Ideen</a>
     <a href="#datenschutz">Datenschutz</a>
     <a href="#fragen">Fragen</a>
     <a href="#hilfe">Hilfe</a>
@@ -178,6 +180,40 @@
     <p class="intro">Neue Outfits für Sudo. Bezahlt wird nicht mit Geld, sondern mit XP: Die sammelt Sudo, wenn du Bugs fängst, Pausen machst oder beim Quiz mitmachst. „Im Sudo ansehen“ öffnet den Skin-Store in deinem Sudo – dort kaufst und ziehst du den Skin an.</p>
     <ul class="store" id="store-grid"></ul>
     <p class="note">Der Link braucht Sudo ab Version 1.14. Ohne Sudo: Rechtsklick auf das Sudo-Symbol, „Skin“ und „Skin-Store …“. Deine IT kann eigene Skins dazulegen oder alle kostenlos machen.</p>
+  </section>
+
+  <section id="ideen" class="band" aria-labelledby="i-titel" hidden>
+    <h2 id="i-titel">Ideen &amp; Wünsche</h2>
+    <p class="intro">Was sollte Sudo noch können? Schreib deine Idee auf – sie landet direkt bei der Entwicklung. Gefällt dir eine Idee aus der Liste, gib ihr deine Stimme: So sehen wir, was vielen wichtig ist.</p>
+    <div class="ideas">
+      <form class="idea-form" id="idea-form" novalidate>
+        <h3>Neue Idee</h3>
+        <label for="idea-title">Titel</label>
+        <input id="idea-title" name="title" maxlength="80" required placeholder="z. B. Sudo zeigt meine nächsten Termine">
+        <label for="idea-text">Beschreibung <span class="count" id="idea-count">0 / 2000</span></label>
+        <textarea id="idea-text" name="text" maxlength="2000" rows="6" required placeholder="Was soll passieren, und wobei würde dir das helfen?"></textarea>
+        <div class="two">
+          <div><label for="idea-name">Name <span class="opt">freiwillig</span></label><input id="idea-name" name="name" maxlength="60" autocomplete="name"></div>
+          <div><label for="idea-mail">E-Mail <span class="opt">freiwillig</span></label><input id="idea-mail" type="email" name="email" maxlength="120" autocomplete="email"></div>
+        </div>
+        <div class="hp" aria-hidden="true"><label for="idea-web">Webseite</label><input id="idea-web" name="website" tabindex="-1" autocomplete="off"></div>
+        <p class="small">Mit E-Mail können wir bei Rückfragen antworten. Name und E-Mail sind nie öffentlich zu sehen. Auf der Liste erscheinen nur Titel und Beschreibung – meist nach einem kurzen Blick der IT.</p>
+        <button class="btn primary" type="submit" id="idea-send">Idee abschicken</button>
+        <p class="form-msg" id="idea-msg" role="status" aria-live="polite"></p>
+      </form>
+      <div class="idea-board">
+        <div class="idea-head">
+          <h3>Eingereicht</h3>
+          <div class="sort" role="group" aria-label="Sortierung">
+            <button type="button" class="chip on" data-sort="votes" aria-pressed="true">Beliebt</button>
+            <button type="button" class="chip" data-sort="new" aria-pressed="false">Neu</button>
+            <button type="button" class="chip" data-sort="done" aria-pressed="false">Umgesetzt</button>
+          </div>
+        </div>
+        <ol class="idea-list" id="idea-list" aria-live="polite"></ol>
+        <p class="idea-empty" id="idea-empty" hidden></p>
+      </div>
+    </div>
   </section>
 
   <section id="fragen" class="band" aria-labelledby="q-titel">

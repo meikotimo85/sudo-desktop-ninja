@@ -27,6 +27,7 @@ require $base . '/app/dex.php';
 require $base . '/app/plugins.php';
 require $base . '/app/auth.php';
 require $base . '/app/skins.php';
+require $base . '/app/ideas.php';
 
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
@@ -435,6 +436,16 @@ if ($route === 'POST /api/events') {
         $author .= ' · Regel ' . $r['name'];
     }
     json_out(['ok' => true, 'type' => $ev['type']] + ($res['rule'] ? ['rule' => $res['rule']['name']] : []) + publish($db, $cfg, $ev, $target, $ttl, $author));
+}
+
+/* ---------- Ideen-Board (1.15): öffentlich für die Infoseite ---------- */
+if ($path === '/api/ideas' || str_starts_with($path, '/api/ideas/')) {
+    $s = $db->settings();
+    ideas_cors($s);
+    if ($method === 'OPTIONS') { http_response_code(204); exit; }
+    if ($route === 'GET /api/ideas') json_out(ideas_list($db, $s));
+    if ($route === 'POST /api/ideas') json_out(idea_submit($db, $cfg, $s, body()));
+    if ($method === 'POST' && preg_match('#^/api/ideas/(\d{1,9})/vote$#', $path, $mm)) json_out(idea_vote($db, $s, (int) $mm[1], body()));
 }
 
 /* =====================================================================

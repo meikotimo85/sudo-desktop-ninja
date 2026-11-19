@@ -84,6 +84,10 @@ CREATE TABLE IF NOT EXISTS plugins (id TEXT PRIMARY KEY, name TEXT NOT NULL, ver
 CREATE TABLE IF NOT EXISTS skins (id TEXT PRIMARY KEY, name TEXT NOT NULL, price INTEGER NOT NULL DEFAULT 0, png TEXT NOT NULL, sheet TEXT,
   sha TEXT NOT NULL, size INTEGER NOT NULL DEFAULT 0, target TEXT NOT NULL DEFAULT 'all', active INTEGER NOT NULL DEFAULT 1,
   author TEXT, created INTEGER NOT NULL, updated INTEGER NOT NULL);
+-- 1.15: Ideen-Board – Wünsche von der Infoseite und Stimmen (nur Hash der Browser-Kennung)
+CREATE TABLE IF NOT EXISTS ideas (id INTEGER PRIMARY KEY AUTOINCREMENT, created INTEGER NOT NULL, updated INTEGER NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL,
+  name TEXT, email TEXT, status TEXT NOT NULL DEFAULT 'neu', public INTEGER NOT NULL DEFAULT 0, votes INTEGER NOT NULL DEFAULT 0, answer TEXT);
+CREATE TABLE IF NOT EXISTS idea_votes (idea_id INTEGER NOT NULL, voter TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (idea_id, voter));
 CREATE INDEX IF NOT EXISTS idx_messages_expires ON messages(expires);
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit(ts);
 `;
@@ -101,7 +105,9 @@ const DEFAULT_SETTINGS = {
   pulse_enabled: 'true', pulse_monthly: 'false', pulse_incident: 'true', pulse_min: '5',
   onboard_enabled: 'false', onboard_days: '30', tips_enabled: 'true', tips_custom: '[]',
   plugins_user: 'true',         // 1.12: eigene Plugins der Mitarbeitenden erlaubt
-  skins_free: 'false'           // 1.14: alle Skins im Store kostenlos
+  skins_free: 'false',          // 1.14: alle Skins im Store kostenlos
+  // 1.15: Ideen-Board (aus, bis es eingeschaltet wird)
+  ideas_enabled: 'false', ideas_auto: 'false', ideas_mail: '', ideas_origins: ''
 };
 
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');

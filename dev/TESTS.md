@@ -79,6 +79,17 @@ $env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-skins.py    # gegen Node
 ```
 Erwartet: 24 Zeilen „OK“, am Ende „Alles gut“. Im Client: `SUDO_OPEN_STORE=1500` öffnet den Skin-Store, `SUDO_TEST_XP=350` gibt Startguthaben, `SUDO_STORE_JS` führt JS im Store aus (`[store-js]`).
 
+## End-to-End-Test Ideen-Board (ab 1.15)
+Frische Datenbank nötig, kein Nachbau. Für die Mail-Prüfung die Zentrale mit Mail-Ordner starten (PHP: `$env:SUDO_TEST_MAILDIR` vor `php -S`, Node: `MAIL_DIR`) und denselben Ordner beim Test als `SUDO_TEST_MAILDIR` setzen.
+```powershell
+python dev\test-ideas.py                           # gegen PHP (8091)
+$env:SUDO_BASE='http://127.0.0.1:8090'; python dev\test-ideas.py    # gegen Node
+```
+Erwartet: 40 Zeilen „OK“ (ohne Mail-Ordner 38), am Ende „Alles grün.“
+
+## Klick-Prüfung (ab Client 1.14.2)
+`SUDO_FAKE_COVER=1` lässt Sudo als dauerhaft verdeckt gelten: Im Protokoll stehen zweimal „nach vorn geholt“, dann „Overlay wird neu erzeugt“ und danach nur noch ein Hinweis (`[click-check]` in der Konsole). `SUDO_CLICK_PROBE=1` schaltet das Overlay kurz klickbar und prüft mit WindowFromPoint, ob Windows Sudo an seiner Stelle findet (`[click-probe] {"sudo":true}`). `SUDO_RECREATE=hand` stellt „Sudo neu laden“ mit Momentaufnahme nach („Neu laden von Hand – …“ im Protokoll).
+
 ## Client (Sudo Desktop)
 ```powershell
 cd sudo-desktop; npm install; npm start

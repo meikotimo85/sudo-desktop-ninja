@@ -45,6 +45,7 @@ Beide Links erscheinen im Unternehmensportal bei der App.
 | `js/sudo.js` | der laufende Sudo auf der Taskleiste, Uhr, Angaben einsetzen |
 | `img/` | Sudo-Grafiken, direkt aus dem Original-Sprite-Sheet erzeugt |
 | `fonts/` | Pixelify Sans (Überschriften), Atkinson Hyperlegible (Text) – beide unter SIL Open Font License |
+| `js/ideen.js` | Ideen-Board (ab 1.15): Formular und Liste mit Stimmen. Die Daten liegen in der Sudo-Zentrale (ab 1.15): in `einstellungen.js` bei `ideen` deren Adresse eintragen – liegt diese Seite im Ordner `info/` der Zentrale, genügt `'..'`. Liegt die Seite woanders, in der Verwaltung unter „Ideen“ die Adresse der Seite freigeben. Ohne Eintrag oder bei ausgeschaltetem Board bleibt der Bereich unsichtbar. Im Browser gespeichert werden nur eine zufällige Kennung und die eigenen Stimmen |
 | `js/store.js`, `skins/` | Galerie „Skin-Store“ (ab 1.14): erzeugt mit `node sudo-desktop/tools/build-website-skins.js` aus den mitgelieferten Skins. „Im Sudo ansehen“ öffnet über `sudo-ninja://store/<id>` den Store im installierten Sudo |
 
 Wer in Windows „Animationen anzeigen“ ausgeschaltet hat, sieht Sudo still stehen; anklicken geht trotzdem.

@@ -73,6 +73,10 @@ final class Db
             "CREATE TABLE IF NOT EXISTS skins (id $id PRIMARY KEY, name $txt NOT NULL, price INTEGER NOT NULL DEFAULT 0, png " . ($this->driver === 'mysql' ? 'MEDIUMTEXT' : 'TEXT') . " NOT NULL,
               sheet $long NULL, sha $id NOT NULL, size INTEGER NOT NULL DEFAULT 0, target $txt NOT NULL DEFAULT 'all', active INTEGER NOT NULL DEFAULT 1,
               author $txt, created BIGINT NOT NULL, updated BIGINT NOT NULL)$eng",
+            // 1.15: Ideen-Board – Wünsche von der Infoseite und Stimmen (nur Hash der Browser-Kennung)
+            "CREATE TABLE IF NOT EXISTS ideas (id $auto, created BIGINT NOT NULL, updated BIGINT NOT NULL, title $txt NOT NULL, text $long NOT NULL, name $txt NULL, email $txt NULL,
+              status $id NOT NULL DEFAULT 'neu', public INTEGER NOT NULL DEFAULT 0, votes INTEGER NOT NULL DEFAULT 0, answer $long NULL)$eng",
+            "CREATE TABLE IF NOT EXISTS idea_votes (idea_id BIGINT NOT NULL, voter $id NOT NULL, created BIGINT NOT NULL, PRIMARY KEY (idea_id, voter))$eng",
             // 1.8: YouTube-Kanäle und Musikwünsche
             "CREATE TABLE IF NOT EXISTS yt_channels (id $auto, channel_id $id NOT NULL UNIQUE, title $txt NOT NULL, handle $txt, target $txt NOT NULL DEFAULT 'all',
               shorts INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, last_check BIGINT NOT NULL DEFAULT 0, last_error $txt, last_video $id, last_published BIGINT NOT NULL DEFAULT 0,
@@ -151,7 +155,9 @@ final class Db
             // 1.12: eigene Plugins der Mitarbeitenden erlaubt
             'plugins_user' => 'true',
             // 1.14: alle Skins im Store kostenlos
-            'skins_free' => 'false'];
+            'skins_free' => 'false',
+            // 1.15: Ideen-Board (aus, bis es eingeschaltet wird)
+            'ideas_enabled' => 'false', 'ideas_auto' => 'false', 'ideas_mail' => '', 'ideas_origins' => ''];
         foreach ($defaults as $k => $v) $this->insertIgnore('settings', ['k' => $k, 'v' => $v]);
     }
 

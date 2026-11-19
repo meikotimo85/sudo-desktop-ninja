@@ -1,3 +1,10 @@
+1.14.2 – Sudo bleibt ansprechbar (Zentralen 1.15.0 mit Ideen-Board)
+  • Klick-Prüfung: Steht die Maus über Sudo, fragt Sudo Windows, welches Fenster den Klick wirklich bekäme. Liegt ein anderes Programm darüber oder hat Windows den Zustand des Overlays verloren, holt sich Sudo selbst nach vorn; hilft das zweimal nicht, erzeugt er sein Fenster neu – wie „Sudo neu laden“, nur ohne dein Zutun. Im Ereignisprotokoll steht, welches Programm ihn verdeckt hat
+  • Sudo holt sich nach jedem Fensterwechsel und nach dem Ende einer Vollbild-App wieder ganz nach oben, sonst alle 10 Sekunden (bisher nur zufällig)
+  • „Sudo neu laden“ schreibt vorher eine Momentaufnahme ins lokale Protokoll (klickbar, Fensterstil, welches Fenster an Sudos Stelle liegt, Zustand der Anzeige) – damit lässt sich die Ursache finden, falls es doch noch einmal hakt
+  • Diagnose-Bericht: neue Zeile „Klick-Prüfung“ und Hinweis, wenn das Overlay nicht mehr „immer oben“ ist
+  • Zentrale 1.15.0: Ideen-Board für die Infoseite – Ideen einreichen, mit einer Stimme unterstützen, Mail an die IT, Freigabe, Stand und Antwort in der Verwaltung unter „Ideen“ (Node: Mailversand über SMTP_URL)
+
 1.14.1 – Ninja-Rad besser lesbar (Zentrale bleibt 1.14.0)
   • Der Name im Ninja-Rad steht jetzt über dem Kreis; oben bleibt ein Platz frei, sodass keine Schaltfläche den Text verdeckt – auch bei langen Namen
   • BAUEN.bat: Linux lässt sich unter Windows nicht bauen (das Packwerkzeug für AppImages gibt es nur für Linux und macOS) – Hinweis auf GitHub bzw. WSL statt der Wahl [5]

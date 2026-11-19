@@ -389,7 +389,12 @@ function computePlatforms(list) {
   });
   return plats;
 }
-let pollTick = 0, platformsChangedAt = 0;
+let pollTick = 0, platformsChangedAt = 0, lastFgId = '', lastTopAt = 0;
+function toTop() {
+  if (!win || win.isDestroyed() || hiddenForFullscreen) return;
+  lastTopAt = Date.now();
+  if (!(typeof win32.bringToTop === 'function' && win32.bringToTop(ownId))) win.setAlwaysOnTop(true, 'screen-saver');
+}
 function poll() {
   if (!win || win.isDestroyed()) return;
   try {
@@ -402,8 +407,11 @@ function poll() {
     }
     if (full !== hiddenForFullscreen) {
       hiddenForFullscreen = full;
-      if (full) win.hide(); else { win.showInactive(); setIgnore(true, true); }
+      if (full) win.hide(); else { win.showInactive(); setIgnore(true, true); toTop(); }
     }
+    // 1.14.2: neues Fenster im Vordergrund → Sudo kurz danach wieder ganz nach oben (manche Programme drängeln sich vor)
+    const fgId = fg ? fg.id : '';
+    if (fgId !== lastFgId) { lastFgId = fgId; setTimeout(toTop, 400); }
     checkSession();
     if (hiddenForFullscreen || locked) return;
     checkMouse();
@@ -415,8 +423,8 @@ function poll() {
     const plats = computePlatforms(list);
     const key = JSON.stringify(plats);
     if (key !== lastPlatforms) { lastPlatforms = key; platformsChangedAt = Date.now(); send('platforms', plats); }
-    // Ganz nach oben, falls z. B. die Taskleiste sich vorgedrängelt hat
-    if (Math.random() < 0.02) win.setAlwaysOnTop(true, 'screen-saver');
+    // Ganz nach oben, falls z. B. die Taskleiste sich vorgedrängelt hat (1.14.2: fest alle 10 s statt zufällig)
+    if (Date.now() - lastTopAt > 10000) toTop();
   } catch (e) {
     console.error('[poll]', e.message);
   }
@@ -1163,7 +1171,7 @@ function buildTrayMenu() {
     { label: ML('Über Sudo …'), icon: mIcon('info'), click: () => openSettings('info') },
     ...(update.state === 'ready' ? [{ label: ML(`Update ${update.version} installieren & neu starten`), icon: mIcon('update'), click: installUpdate }] : []),
     { type: 'separator' },
-    { label: ML('Sudo neu laden (falls er nicht reagiert)'), icon: mIcon('reload'), click: recreateOverlay },
+    { label: ML('Sudo neu laden (falls er nicht reagiert)'), icon: mIcon('reload'), click: reloadByHand },
     { label: ML('Beenden'), icon: mIcon('quit'), click: () => app.quit() }
   ]);
   tray.setContextMenu(menu);
@@ -1340,7 +1348,7 @@ ipcMain.handle('center-action', async (_e, action, arg) => {
     case 'diag': { const t = await diagnostics(); clipboard.writeText(t); return { ok: true, msg: 'Diagnose-Bericht in die Zwischenablage kopiert.' }; }
     case 'checkUpdate': return checkUpdate(true);
     case 'installUpdate': installUpdate(); break;
-    case 'reload': recreateOverlay(); break;
+    case 'reload': reloadByHand(); break;
   }
   return { ok: true };
 });
@@ -1382,7 +1390,8 @@ async function diagnostics() {
   add('Sparmodus', `${settings.eco} → ${ecoActive ? 'aktiv' : 'inaktiv'}${powerMonitor.isOnBatteryPower() ? ' (Akku)' : ''}`);
   add('Meeting erkannt', inMeeting ? 'ja' : 'nein'); add('Vollbild versteckt', hiddenForFullscreen ? 'ja' : 'nein');
   add('Remotedesktop (RDP)', win32.remoteSession() ? 'ja' : 'nein'); add('Gesperrt', locked ? 'ja' : 'nein');
-  { const ex = win32.exStyle(ownId); add('Overlay klickbar', `${ignoring ? 'nein (durchklickbar)' : 'ja'}` + (ex === null ? '' : ` · Fensterstil ${ex.toString(16)}${ex & 0x20 ? ' (WS_EX_TRANSPARENT)' : ''}`)); }
+  { const ex = win32.exStyle(ownId); add('Overlay klickbar', `${ignoring ? 'nein (durchklickbar)' : 'ja'}` + (ex === null ? '' : ` · Fensterstil ${ex.toString(16)}${ex & 0x20 ? ' (WS_EX_TRANSPARENT)' : ''}${ex & 0x8 ? '' : ' · NICHT immer oben'}`)); }
+  add('Klick-Prüfung', clickLast);
   add('Updates', `${settings.autoUpdate ? 'automatisch' : 'aus'} · ${update.state}${update.error ? ' · ' + update.error : ''}`);
   lines.push('', 'Bildschirme:');
   screen.getAllDisplays().forEach((d, n) => lines.push(`  ${n + 1}: ${d.size.width}×${d.size.height} @ ${d.scaleFactor * 100} %, Position ${d.bounds.x},${d.bounds.y}${display && d.id === display.id ? '  ← Sudo' : ''}`));
@@ -1936,7 +1945,75 @@ function checkMouse() {
   const over = hit.hold || hit.boxes.some(([l, t, r, bt]) => x >= l - pad && x <= r + pad && y >= t - pad && y <= bt + pad);
   // alle 5 Sekunden den Zustand neu setzen, falls Windows ihn verloren hat
   setIgnore(!over, Date.now() - lastIgnoreSet > 5000);
+  checkClickable(over && !hit.hold);
 }
+
+/* ---------- Klick-Prüfung (1.14.2) ----------
+   „Sudo reagiert nicht“: Die Maus steht über Sudo, das Overlay ist klickbar geschaltet – und trotzdem
+   kommt der Klick woanders an. Dann liegt ein anderes Fenster darüber oder Windows hat den Zustand
+   des Overlays verloren. Windows sagt uns über WindowFromPoint, wer den Klick bekäme.
+   Stufen: zweimal nach vorn holen und Zustand neu setzen, dann das Overlay neu erzeugen (wie
+   „Sudo neu laden“), danach nur noch protokollieren. Menüs, Startmenü und eigene Fenster sind gewollt. */
+const CLICK_PASS = new Set(['#32768', 'tooltips_class32', 'Windows.UI.Core.CoreWindow', 'Shell_TrayWnd', 'Shell_SecondaryTrayWnd',
+  'NotifyIconOverflowWindow', 'TopLevelWindowForOverflowXamlIsland', 'XamlExplorerHostIslandWindow', 'Xaml_WindowedPopupClass',
+  'MultitaskingViewFrame', 'ForegroundStaging', 'TaskListThumbnailWnd', 'SysShadow']);
+let clickBad = 0, clickFix = { at: 0, n: 0 }, lastAutoRecreate = 0, clickLast = 'noch nicht geprüft';
+function checkClickable(over) {
+  const fake = TEST && !!process.env.SUDO_FAKE_COVER;   // Test: Sudo gilt als dauerhaft verdeckt
+  if (!fake && (!over || ignoring || !ownId || typeof win32.windowAt !== 'function')) { clickBad = 0; return; }
+  const w = fake ? { id: '1', cls: 'FakeCover', exe: 'test.exe', own: false } : win32.windowAt();
+  if (!w) return;
+  if (w.id === ownId || w.own || CLICK_PASS.has(w.cls)) {
+    clickBad = 0;
+    if (w.id === ownId) clickLast = 'in Ordnung (' + new Date().toLocaleTimeString('de-DE') + ')';
+    return;
+  }
+  if (++clickBad < 6) return;   // gut 0,5 s lang verdeckt – kurze Überlagerungen (Animationen, Hinweise) zählen nicht
+  clickBad = 0;
+  const t = Date.now();
+  if (t - clickFix.at < 4000) return;
+  clickFix.n = t - clickFix.at < 60000 ? clickFix.n + 1 : 1; clickFix.at = t;
+  const who = `${w.exe || '?'} (${w.cls || '?'})`;
+  clickLast = `verdeckt von ${who} um ${new Date().toLocaleTimeString('de-DE')}`;
+  if (TEST) console.log('[click-check]', JSON.stringify({ step: clickFix.n, who }));
+  if (clickFix.n <= 2) {
+    writeLog(`Klick-Prüfung: ${who} liegt über Sudo – Sudo wird nach vorn geholt`);
+    setIgnore(false, true); toTop();
+  } else if (clickFix.n === 3 && t - lastAutoRecreate > 5 * 60000) {
+    lastAutoRecreate = t;
+    writeLog(`Klick-Prüfung: Sudo bleibt verdeckt von ${who} – Overlay wird neu erzeugt`);
+    diag.crash && diag.crash('verdeckt von ' + who);
+    recreateOverlay();
+  } else if (clickFix.n === 4) {
+    writeLog(`Klick-Prüfung: ${who} verdeckt Sudo weiterhin – dieses Programm holt sich selbst immer nach vorn`);
+  }
+}
+
+// Momentaufnahme beim Neu-Laden von Hand: Was war los, als Sudo nicht reagierte? (nur ins lokale Protokoll)
+async function reloadSnapshot() {
+  try {
+    const parts = [`klickbar ${ignoring ? 'nein' : 'ja'}`, `Bereiche ${hit.boxes.length}${hit.hold ? ' (festgehalten)' : ''}`];
+    if (hiddenForFullscreen) parts.push('wegen Vollbild versteckt');
+    if (locked) parts.push('gilt als gesperrt');
+    if (win && !win.isDestroyed()) {
+      parts.push(win.isVisible() ? 'sichtbar' : 'unsichtbar');
+      const ex = win32.exStyle(ownId);
+      if (ex !== null) parts.push(`Stil ${ex.toString(16)}${ex & 0x8 ? ' oben' : ' NICHT oben'}${ex & 0x20 ? ' durchklickbar' : ''}`);
+      const b = hit.boxes[0];
+      if (b && display && typeof win32.windowAt === 'function') {
+        const p = screen.dipToScreenPoint ? screen.dipToScreenPoint({ x: display.bounds.x + (b[0] + b[2]) / 2, y: display.bounds.y + (b[1] + b[3]) / 2 }) : null;
+        const w = p ? win32.windowAt(p) : null;
+        if (w) parts.push('an Sudos Stelle: ' + (w.id === ownId ? 'Sudo' : `${w.exe || '?'} (${w.cls || '?'})`));
+      }
+      const st = await Promise.race([win.webContents.executeJavaScript('window.__sudoState ? window.__sudoState() : null', true).catch(() => null),
+        new Promise(r => setTimeout(() => r('keine Antwort'), 1000))]);
+      parts.push('Anzeige: ' + (typeof st === 'string' ? st : st ? JSON.stringify(st) : 'unbekannt'));
+    }
+    parts.push('Klick-Prüfung ' + clickLast);
+    writeLog('Neu laden von Hand – ' + parts.join(' · '));
+  } catch (e) { writeLog('Neu laden von Hand (keine Momentaufnahme: ' + e.message + ')'); }
+}
+function reloadByHand() { reloadSnapshot().finally(recreateOverlay); }
 ipcMain.on('log', (_e, msg) => writeLog(String(msg).slice(0, 300)));
 ipcMain.on('stats', (_e, s) => {
   if (!s || typeof s !== 'object') return;
@@ -2017,6 +2094,16 @@ app.whenReady().then(() => {
   if (TEST && process.env.SUDO_OPEN_STATS === '1') setTimeout(openStatsWindow, 800);
   if (TEST && process.env.SUDO_OPEN_WORK === '1') setTimeout(openWorkWindow, 800);
   if (TEST && process.env.SUDO_RECREATE === '1') setTimeout(recreateOverlay, 2000);
+  if (TEST && process.env.SUDO_RECREATE === 'hand') setTimeout(reloadByHand, 3000);   // 1.14.2: Neu laden von Hand mit Momentaufnahme
+  if (TEST && process.env.SUDO_CLICK_PROBE) setTimeout(() => {   // 1.14.2: erkennt WindowFromPoint das klickbare Overlay?
+    const b = hit.boxes[0]; if (!b) return console.log('[click-probe] keine Bereiche');
+    clearInterval(pollTimer);   // sonst schaltet checkMouse sofort zurück auf durchklickbar (Maus steht ja nicht über Sudo)
+    setIgnore(false, true);
+    setTimeout(() => {
+      const p = screen.dipToScreenPoint({ x: display.bounds.x + (b[0] + b[2]) / 2, y: display.bounds.y + (b[1] + b[3]) / 2 });
+      const w = win32.windowAt(p); console.log('[click-probe]', JSON.stringify({ sudo: !!w && w.id === ownId, cls: w && w.cls, stil: (win32.exStyle(ownId) || 0).toString(16) }));
+    }, 300);
+  }, 4000);
   if (TEST && process.env.SUDO_OPEN_TOOLS) setTimeout(() => openTools(process.env.SUDO_OPEN_TOOLS), 800);
   if (TEST && process.env.SUDO_OPEN_WARDROBE === '1') setTimeout(openWardrobe, 1500);
   if (TEST && process.env.SUDO_OPEN_SETTINGS) setTimeout(() => openSettings(process.env.SUDO_OPEN_SETTINGS), 800);

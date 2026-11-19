@@ -14,6 +14,7 @@ if (isWin) {
     const shell32 = koffi.load('shell32.dll');
     const HWND = koffi.pointer('HWND', koffi.opaque());
     const HANDLE = koffi.pointer('HANDLE', koffi.opaque());
+    koffi.struct('POINT', { x: 'long', y: 'long' });
 
     api = {
       koffi,
@@ -36,7 +37,12 @@ if (isWin) {
       // Gleiche Funktion, aber mit dem Fenster als Zahl (eigenes Overlay, Adresse aus handleToId)
       GetWindowLongById: user32.func('long __stdcall GetWindowLongW(intptr_t hWnd, int index)'),
       // 1.13: Explorer über neue Dateiendung informieren (Symbol sofort sichtbar)
-      SHChangeNotify: shell32.func('void __stdcall SHChangeNotify(long wEventId, uint32_t uFlags, void *dwItem1, void *dwItem2)')
+      SHChangeNotify: shell32.func('void __stdcall SHChangeNotify(long wEventId, uint32_t uFlags, void *dwItem1, void *dwItem2)'),
+      // 1.14.2: Klick-Prüfung – welches Fenster bekommt den Klick an der Mausposition?
+      GetCursorPos: user32.func('bool __stdcall GetCursorPos(_Out_ POINT *pt)'),
+      WindowFromPoint: user32.func('HWND __stdcall WindowFromPoint(POINT pt)'),
+      GetAncestor: user32.func('HWND __stdcall GetAncestor(HWND hWnd, uint32_t flags)'),
+      SetWindowPosById: user32.func('bool __stdcall SetWindowPos(intptr_t hWnd, intptr_t after, int x, int y, int cx, int cy, uint32_t flags)')
     };
   } catch (err) {
     console.error('[win32] koffi konnte nicht geladen werden:', err.message);
@@ -188,4 +194,30 @@ function notifyAssocChanged() {
   try { api.SHChangeNotify(0x08000000, 0, null, null); } catch { /* nicht schlimm, dann nach dem nächsten Anmelden */ }
 }
 
-module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged };
+/**
+ * 1.14.2: Oberstes Fenster an einem Bildschirmpunkt (physische Pixel, ohne Punkt = Mausposition).
+ * Fenster mit WS_EX_TRANSPARENT (durchklickbares Overlay) überspringt Windows dabei – genau wie beim Klick.
+ * @returns {{id:string, cls:string, exe:string, own:boolean}|null}
+ */
+function windowAt(pt) {
+  if (!api) return null;
+  try {
+    let p = pt;
+    if (!p) { const o = {}; if (!api.GetCursorPos(o)) return null; p = { x: o.x, y: o.y }; }
+    const h = api.WindowFromPoint({ x: Math.round(p.x), y: Math.round(p.y) });
+    if (!h) return null;
+    const root = api.GetAncestor(h, 2 /* GA_ROOT */) || h;
+    const pid = [0];
+    api.GetWindowThreadProcessId(root, pid);
+    return { id: addr(root), cls: className(root), exe: exeOf(root), own: pid[0] === process.pid };
+  } catch { return null; }
+}
+
+/** Eigenes Overlay ganz nach oben in die Reihe der „immer oben“-Fenster, ohne es zu aktivieren */
+function bringToTop(id) {
+  if (!api || !id || id === '0') return false;
+  try { return api.SetWindowPosById(BigInt(id), -1 /* HWND_TOPMOST */, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200 /* NOSIZE|NOMOVE|NOACTIVATE|NOOWNERZORDER */); }
+  catch { return false; }
+}
+
+module.exports = { available: () => !!api, listWindows, foreground, windowInfos, handleToId, remoteSession, exStyle, notifyAssocChanged, windowAt, bringToTop };

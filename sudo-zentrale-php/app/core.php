@@ -2,7 +2,7 @@
 // core.php – Helfer: Antworten, Anfragen, Geräte, Meldungen, Admin-Anmeldung (Entra ID / Passwort)
 declare(strict_types=1);
 
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 const VISIT_KINDS = ['note', 'coffee', 'duck', 'pizza', 'confetti', 'bug', 'duel'];
 const EVENT_TYPES = ['backup_failed', 'server_down', 'deploy_ok', 'ticket', 'bug', 'message', 'success', 'warning', 'video', 'music'];
 

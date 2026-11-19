@@ -1,4 +1,4 @@
-# Sudo – Desktop-Ninja 1.14.1
+# Sudo – Desktop-Ninja 1.14.2
 
 Sudo lebt auf deinem Windows-Desktop: Er läuft auf der Taskleiste, springt auf die Oberkanten deiner echten Fenster, tippt mit, wenn du tippst, erinnert dich an Pausen und meldet sich, wenn in der IT etwas brennt.
 

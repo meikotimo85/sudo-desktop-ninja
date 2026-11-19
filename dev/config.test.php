@@ -22,4 +22,6 @@ return [
   // Nachbau von Microsoft Graph (SharePoint): node dev/mock-graph.js – Client Secret dort: geheim
   'graph_login' => 'http://127.0.0.1:4801',
   'graph_api' => 'http://127.0.0.1:4801/v1.0',
+  // 1.15: Mails des Ideen-Boards als Datei ablegen statt versenden (test-ideas.py)
+  'mail_dir' => getenv('SUDO_TEST_MAILDIR') ?: '',
 ];

@@ -138,3 +138,9 @@ code.big { display: block; font-size: 18px; letter-spacing: 2px; padding: 8px 10
 /* 1.14: Skin-Vorschau in der Verwaltung */
 canvas.skinthumb { width: 48px; height: 52px; image-rendering: pixelated; background: linear-gradient(180deg, #0c1222, #1b2848); border-radius: 6px; }
 input.num { width: 90px; }
+/* 1.15: Ideen-Board */
+.ideas { display: grid; gap: 12px; }
+.idea { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #0f131b; }
+.idea.wait { border-color: rgba(244,208,63,.45); }
+.idea .ideatext { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.idea .row { flex-wrap: wrap; gap: 6px; align-items: center; }

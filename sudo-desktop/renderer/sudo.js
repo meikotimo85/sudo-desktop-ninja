@@ -982,6 +982,8 @@ function sendHitboxes() {
   if (key !== lastBoxes) { lastBoxes = key; host.hitboxes(msg); }
 }
 setInterval(sendHitboxes, 60);
+// 1.14.2: kurzer Zustand für die Momentaufnahme beim Neu-Laden von Hand (nur lokales Protokoll)
+window.__sudoState = () => ({ mode: N.mode, act: N.act ? N.act.name : null, x: Math.round(N.x), y: Math.round(N.y), deck: !!deckOpen, sichtbar: nin.style.visibility !== 'hidden', bild: Math.round(performance.now() - now) });
 function syncIgnore() { sendHitboxes(); }
 
 /* ---------- Greifen, Werfen, Streicheln ---------- */

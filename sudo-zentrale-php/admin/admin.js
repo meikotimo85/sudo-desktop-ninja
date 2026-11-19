@@ -134,7 +134,7 @@
   }
 
   /* ---------- Rahmen ---------- */
-  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['plugins', 'Plugins'], ['skins', 'Skins'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
+  const NAV = [['home', 'Übersicht'], ['send', 'Meldung senden'], ['devices', 'Geräte'], ['enroll', 'Registrierung'], ['api', 'Schnittstellen'], ['rules', 'Regeln'], ['ai', 'KI & Besuche'], ['ops', 'Störungen & Neustarts'], ['dex', 'Mitarbeiter-Erlebnis'], ['kb', 'Wissen (SharePoint)'], ['youtube', 'YouTube'], ['music', 'Musikwünsche'], ['plugins', 'Plugins'], ['skins', 'Skins'], ['ideas', 'Ideen'], ['security', 'Sicherheit & Quiz'], ['audit', 'Protokoll']];
   function shell(content) {
     const nav = el('nav', { class: 'side', 'aria-label': 'Bereiche' },
       el('p', { class: 'brand' }, el('img', { src: BASE + '/icon.png', alt: '' }), el('span', {}, el('span', { text: 'sudo' }), ' zentrale')),
@@ -966,6 +966,51 @@
           el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Im Skin-Store', freeSel)),
           el('p', { class: 'muted', text: '„Alle Skins kostenlos“ gilt für eure und die mitgelieferten Skins: Jeder kann sie ohne XP anziehen.' }),
           el('div', { class: 'row', style: 'margin-top:12px' }, action('Speichern', async () => { await api('PUT', '/admin/api/settings', { skins_free: freeSel.value }); toast('Gespeichert.'); }, 'primary'))));
+    },
+
+    // 1.15: Ideen-Board – Wünsche von der Infoseite freigeben, beantworten und den Stand pflegen
+    async ideas() {
+      const [d, s] = await Promise.all([api('GET', '/admin/api/ideas'), api('GET', '/admin/api/settings')]);
+      const STATES = [['neu', 'Neu'], ['geplant', 'Geplant'], ['in_arbeit', 'In Arbeit'], ['umgesetzt', 'Umgesetzt'], ['abgelehnt', 'Abgelehnt']];
+      const waiting = d.items.filter(i => !i.public).length;
+      const yesNo = (cur, no, yes) => el('select', {}, el('option', { value: 'false', text: no, selected: cur !== 'true' }), el('option', { value: 'true', text: yes, selected: cur === 'true' }));
+      const fOn = yesNo(s.ideas_enabled, 'aus', 'an');
+      const fAuto = yesNo(s.ideas_auto, 'erst nach meiner Freigabe', 'sofort');
+      const fMail = el('input', { type: 'email', maxlength: 120, value: s.ideas_mail || '', placeholder: 'z. B. it@firma.de' });
+      const fOrig = el('input', { type: 'text', maxlength: 500, value: s.ideas_origins || '', placeholder: 'z. B. https://sudo.firma.de' });
+      const item = i => {
+        const st = el('select', { 'aria-label': 'Stand' }, ...STATES.map(([v, t]) => el('option', { value: v, text: t, selected: i.status === v })));
+        st.addEventListener('change', async () => { await api('PATCH', '/admin/api/ideas/' + i.id, { status: st.value }); toast('Stand gespeichert.'); });
+        const ans = el('textarea', { maxlength: 500, placeholder: 'Antwort der IT (öffentlich sichtbar, optional)' });
+        ans.value = i.answer || '';
+        const who = [i.name || 'ohne Namen', i.email ? '<' + i.email + '>' : ''].filter(Boolean).join(' ');
+        return el('div', { class: 'idea' + (i.public ? '' : ' wait') },
+          el('div', { class: 'row' }, el('b', { text: i.title }), el('span', { class: 'pill' + (i.public ? ' ok' : ' warn'), text: i.public ? 'öffentlich' : 'wartet auf Freigabe' }),
+            el('span', { class: 'pill teal', text: `${i.votes} ${i.votes === 1 ? 'Stimme' : 'Stimmen'}` })),
+          el('div', { class: 'muted', text: `#${i.id} · ${fmtDate(i.created)} · ${who}` }),
+          el('p', { class: 'ideatext', text: i.text }),
+          el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Stand', st), el('label', { class: 'f' }, 'Antwort', ans)),
+          el('div', { class: 'row' },
+            action(i.public ? 'Verbergen' : 'Freigeben', async () => { await api('PATCH', '/admin/api/ideas/' + i.id, { public: !i.public }); go('ideas'); }, i.public ? 'small' : 'small primary'),
+            action('Antwort speichern', async () => { await api('PATCH', '/admin/api/ideas/' + i.id, { answer: ans.value }); toast('Antwort gespeichert.'); }, 'small'),
+            i.email ? el('a', { class: 'btn small', href: 'mailto:' + encodeURIComponent(i.email) + '?subject=' + encodeURIComponent('Deine Idee für Sudo: ' + i.title), text: 'Per Mail antworten' }) : null,
+            action('Löschen', async () => { if (!confirm(`„${i.title}“ löschen? Die Stimmen gehen mit verloren.`)) return; await api('DELETE', '/admin/api/ideas/' + i.id); go('ideas'); }, 'small danger')));
+      };
+      return el('div', {},
+        el('h2', { text: 'Ideen' }),
+        el('p', { class: 'sub', text: 'Wünsche und Ideen von der Infoseite. Neue Ideen kommen per Mail; öffentlich erscheinen sie erst nach deiner Freigabe (oder sofort, wenn so eingestellt). Auf der Infoseite kann jeder einmal pro Browser zustimmen. Name und E-Mail der Einreichenden sieht nur die Verwaltung.' }),
+        card(`Ideen (${d.items.length}${waiting ? ' · ' + waiting + ' warten auf Freigabe' : ''})`,
+          s.ideas_enabled !== 'true' ? el('p', { class: 'muted', text: 'Das Ideen-Board ist noch aus – unten einschalten.' }) : null,
+          d.items.length ? el('div', { class: 'ideas' }, d.items.map(item)) : el('p', { class: 'empty', text: 'Noch keine Ideen eingegangen.' })),
+        card('Einstellungen',
+          el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Ideen-Board', fOn), el('label', { class: 'f' }, 'Neue Ideen öffentlich', fAuto)),
+          el('div', { class: 'grid2' }, el('label', { class: 'f' }, 'Mail an', fMail), el('label', { class: 'f' }, 'Adresse der Infoseite (nur wenn sie nicht in dieser Zentrale liegt)', fOrig)),
+          el('p', { class: 'muted', text: d.mail.ready ? 'Mailversand ist eingerichtet.' : 'Mailversand ist nicht eingerichtet – Ideen landen trotzdem hier. Docker-Version: SMTP_URL in der .env setzen.' }),
+          el('p', { class: 'muted', text: 'Liegt die Infoseite im Ordner info/ dieser Zentrale, bleibt das Adressfeld leer. Liegt sie woanders, deren Adresse eintragen (z. B. https://sudo.firma.de) und auf der Infoseite in einstellungen.js unter ideen die Adresse dieser Zentrale.' }),
+          el('div', { class: 'row', style: 'margin-top:12px' }, action('Speichern', async () => {
+            await api('PUT', '/admin/api/settings', { ideas_enabled: fOn.value, ideas_auto: fAuto.value, ideas_mail: fMail.value.trim(), ideas_origins: fOrig.value.trim() });
+            toast('Gespeichert.'); go('ideas');
+          }, 'primary'))));
     },
 
     // 1.12: Plugins – kleine HTML-Werkzeuge, die sich die Sudos holen und abgeschottet öffnen

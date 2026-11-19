@@ -4,7 +4,7 @@
 
 Sudo ist ein kleiner Pixel-Ninja, der auf dem Windows-Desktop lebt. Er läuft über die Taskleiste, erinnert an Pausen und hilft bei Alltagsproblemen am PC. Über die **Sudo-Zentrale** erreicht die IT damit alle Mitarbeitenden: Meldungen, Störungen, Neustart-Aufforderungen, Quiz und Wissen aus dem Intranet kommen dort an, wo sie gesehen werden.
 
-Stand: Client 1.14.1 (Windows und Linux), Zentrale 1.14.0.
+Stand: Client 1.14.2 (Windows und Linux), Zentrale 1.15.0.
 
 ## Was Sudo kann
 
@@ -24,6 +24,7 @@ Stand: Client 1.14.1 (Windows und Linux), Zentrale 1.14.0.
 - Plugins: eigene kleine Werkzeuge als HTML-Datei an alle oder einzelne Gruppen verteilen, abgeschottet ohne Internet
 - Skin-Store: neue Outfits für Sudo, bezahlt mit XP – mitgeliefert, von der IT über die Zentrale oder als .sudoskin-Datei
 - Notfall-Zugang der Verwaltung mit zweitem Faktor (Authenticator-App), Adressfreigabe und Sperren
+- Ideen-Board: Wünsche über die Infoseite einreichen und unterstützen, Mail an die IT, Freigabe und Antworten in der Verwaltung
 - Verwaltung mit Anmeldung über Microsoft Entra ID, Protokoll aller Aktionen
 
 ## Aufbau

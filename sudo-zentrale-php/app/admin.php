@@ -172,6 +172,11 @@ switch (true) {
             'plugins_user' => fn($v) => in_array((string) $v, ['true', 'false'], true),
             // 1.14: Skin-Store
             'skins_free' => fn($v) => in_array((string) $v, ['true', 'false'], true),
+            // 1.15: Ideen-Board
+            'ideas_enabled' => fn($v) => in_array((string) $v, ['true', 'false'], true),
+            'ideas_auto' => fn($v) => in_array((string) $v, ['true', 'false'], true),
+            'ideas_mail' => fn($v) => is_string($v) && ($v === '' || (strlen($v) <= 120 && filter_var($v, FILTER_VALIDATE_EMAIL))),
+            'ideas_origins' => fn($v) => is_string($v) && strlen($v) <= 500 && preg_match('#^(\s*https?://[a-z0-9.-]+(:\d{1,5})?/?\s*[,;]?)*$#i', $v),
         ];
         foreach ($b as $k => $v) {
             if (!isset($check[$k])) continue;
@@ -414,6 +419,13 @@ switch (true) {
         json_out(skin_save($db, is_array($sb) ? $sb : [], $who));
     case preg_match('#^/skins/([a-z0-9-]{2,40})$#', $sub, $mm) === 1 && in_array($method, ['PATCH', 'DELETE'], true):
         if ($method === 'DELETE') skin_delete($db, $mm[1], $who); else skin_patch($db, $mm[1], $b, $who);
+        json_out(['ok' => true]);
+
+    /* Ideen-Board (1.15) */
+    case $method === 'GET' && $sub === '/ideas':
+        json_out(ideas_admin($db, $cfg));
+    case preg_match('#^/ideas/(\d{1,9})$#', $sub, $mm) === 1 && in_array($method, ['PATCH', 'DELETE'], true):
+        if ($method === 'DELETE') idea_delete($db, (int) $mm[1], $who); else idea_patch($db, (int) $mm[1], $b, $who);
         json_out(['ok' => true]);
 
     case $method === 'GET' && $sub === '/audit':

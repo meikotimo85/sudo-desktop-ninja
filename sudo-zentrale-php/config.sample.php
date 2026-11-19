@@ -33,4 +33,6 @@ return [
 
     // Optional: erster Registrierungscode (sonst in der Verwaltung erzeugen)
     'first_enroll_code' => '',
+    // 1.15: Absender der Mails des Ideen-Boards (leer = sudo-zentrale@<Domain aus public_url>)
+    'mail_from' => '',
 ];
